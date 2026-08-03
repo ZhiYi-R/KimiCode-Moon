@@ -233,6 +233,22 @@ function setDefaultModel(value: string): void {
   emit('updateConfig', { defaultModel: value });
 }
 
+function setSecondaryModel(value: string): void {
+  if (value === props.config?.secondaryModel?.model) return;
+  emit(
+    'updateConfig',
+    value.length > 0 ? { secondaryModel: { model: value } } : { secondaryModel: undefined },
+  );
+}
+
+/** Known experimental flags surfaced as config.toml `[experimental]` toggles. */
+const EXPERIMENT_FLAGS = ['tool-select', 'secondary-model'] as const;
+
+function toggleExperimental(flag: string, on: boolean): void {
+  const current = props.config?.experimental ?? {};
+  emit('updateConfig', { experimental: { ...current, [flag]: on } });
+}
+
 function setDefaultPermissionMode(mode: 'manual' | 'auto' | 'yolo'): void {
   if (mode === defaultPermissionMode.value) return;
   emit('updateConfig', { defaultPermissionMode: mode });
@@ -555,6 +571,29 @@ function archiveTime(iso: string): string {
 
               <div class="row">
                 <span class="rlabel">
+                  {{ t('settings.secondaryModel') }}
+                  <span class="hint">{{ t('settings.secondaryModelHint') }}</span>
+                </span>
+                <div v-if="modelGroups.length > 0" class="select-wrap">
+                  <Select
+                    :model-value="config.secondaryModel?.model ?? ''"
+                    :disabled="configSaving"
+                    :aria-label="t('settings.secondaryModel')"
+                    @update:model-value="setSecondaryModel"
+                  >
+                    <option value="" disabled>{{ t('settings.noSecondaryModel') }}</option>
+                    <optgroup v-for="group in modelGroups" :key="group.provider" :label="group.provider">
+                      <option v-for="model in group.options" :key="model.id" :value="model.id">
+                        {{ model.label }}
+                      </option>
+                    </optgroup>
+                  </Select>
+                </div>
+                <span v-else class="rvalue mono">{{ config.secondaryModel?.model ?? t('settings.noSecondaryModel') }}</span>
+              </div>
+
+              <div class="row">
+                <span class="rlabel">
                   {{ t('settings.defaultPermission') }}
                   <span class="hint">{{ t('settings.defaultPermissionHint') }}</span>
                 </span>
@@ -646,6 +685,18 @@ function archiveTime(iso: string): string {
                 <span v-if="!isTraceEnabled()" class="hint">{{ t('settings.logHint') }}</span>
               </span>
               <Button variant="secondary" size="sm" @click="exportLog">{{ t('settings.exportLogBtn') }}</Button>
+            </div>
+            <div v-if="config" class="experiments-sec">
+              <h4 class="sec-title">{{ t('settings.experimentsTitle') }}</h4>
+              <div v-for="flag in EXPERIMENT_FLAGS" :key="flag" class="row">
+                <span class="rlabel mono">{{ flag }}</span>
+                <Switch
+                  :model-value="config.experimental?.[flag] === true"
+                  :disabled="configSaving"
+                  :label="flag"
+                  @update:model-value="toggleExperimental(flag, $event as boolean)"
+                />
+              </div>
             </div>
             <div class="feedback-sec">
               <h4 class="sec-title">{{ t('settings.feedbackTitle') }}</h4>

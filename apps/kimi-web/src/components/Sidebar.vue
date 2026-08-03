@@ -117,6 +117,7 @@ const emit = defineEmits<{
   loadMoreSessions: [workspaceId: string];
   loadAllSessions: [];
   openSettings: [];
+  openHelp: [];
   collapse: [];
 }>();
 
@@ -796,6 +797,10 @@ onBeforeUnmount(() => {
         <button class="btn-settings" type="button" @click.stop="emit('openSettings')">
           <Icon name="settings" />
           <span>{{ t('settings.title') }}</span>
+        </button>
+        <button class="btn-settings" type="button" @click.stop="emit('openHelp')">
+          <Icon name="help-circle" />
+          <span>{{ t('help.title') }}</span>
         </button>
       </div>
     </div>

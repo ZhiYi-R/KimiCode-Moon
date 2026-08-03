@@ -779,6 +779,13 @@ export function toAppConfig(wire: WireConfig): AppConfig {
     loopControl: wire.loop_control,
     background: wire.background,
     experimental: wire.experimental,
+    secondaryModel:
+      wire.secondary_model === undefined
+        ? undefined
+        : {
+            model: wire.secondary_model.model,
+            defaultEffort: wire.secondary_model.default_effort,
+          },
     telemetry: wire.telemetry,
     raw: wire.raw,
   };

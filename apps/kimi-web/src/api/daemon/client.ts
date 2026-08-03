@@ -38,6 +38,7 @@ import type {
   WireCronTask,
   WireGlobalMcpServer,
   WireMcpTestResult,
+  WireOAuthUsage,
   WirePluginEntry,
   WirePluginInfo,
   WireUpcomingGoal,
@@ -1287,6 +1288,7 @@ export class DaemonKimiWebApi implements KimiWebApi {
       loopControl: 'loop_control',
       background: 'background',
       experimental: 'experimental',
+      secondaryModel: 'secondaryModel',
       telemetry: 'telemetry',
       raw: 'raw',
     };
@@ -1814,6 +1816,10 @@ export class DaemonKimiWebApi implements KimiWebApi {
     const body: Record<string, unknown> = { url: input.url };
     if (input.apiKey !== undefined) body['api_key'] = input.apiKey;
     return this.http.post<unknown>('/providers:import_registry', body);
+  }
+
+  async getOAuthUsage(): Promise<WireOAuthUsage> {
+    return this.http.get<WireOAuthUsage>('/oauth/usage');
   }
 }
 

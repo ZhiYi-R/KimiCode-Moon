@@ -13,6 +13,7 @@ import ToolDiffPanel from './components/chat/ToolDiffPanel.vue';
 import SideChatPanel from './components/chat/SideChatPanel.vue';
 import DiffView from './components/chat/DiffView.vue';
 import ModelPicker from './components/settings/ModelPicker.vue';
+import HelpDialog from './components/HelpDialog.vue';
 import ProviderManager from './components/settings/ProviderManager.vue';
 import LoginDialog from './components/dialogs/LoginDialog.vue';
 import SettingsDialog from './components/settings/SettingsDialog.vue';
@@ -320,6 +321,7 @@ const showLogin = ref(false);
 const showAddWorkspace = ref(false);
 const showStatusPanel = ref(false);
 const showSettings = ref(false);
+const showHelp = ref(false);
 
 type SubmitPayload = {
   text: string;
@@ -344,6 +346,7 @@ const anyOverlayOpen = computed<boolean>(
     showAddWorkspace.value ||
     showStatusPanel.value ||
     showSettings.value ||
+    showHelp.value ||
     showOnboarding.value ||
     showMobileSwitcher.value ||
     showMobileSettings.value,
@@ -769,6 +772,7 @@ function openPr(url: string): void {
         @load-more-sessions="(id) => void client.loadMoreSessions(id)"
         @load-all-sessions="void client.loadAllSessions()"
         @open-settings="showSettings = true"
+        @open-help="showHelp = true"
         @collapse="toggleSidebarCollapse"
       />
       <ResizeHandle
@@ -793,6 +797,7 @@ function openPr(url: string): void {
       :session-count="activeWorkspaceSessionCount"
       @open-switcher="showMobileSwitcher = true"
       @open-settings="showMobileSettings = true"
+      @open-help="showHelp = true"
     />
 
     <ConversationPane
@@ -1036,6 +1041,7 @@ function openPr(url: string): void {
       @open-providers="() => { showSettings = false; openProviders(); }"
       @close="showSettings = false"
     />
+    <HelpDialog v-if="showHelp" @close="showHelp = false" />
 
     <!-- Provider Manager overlay -->
     <ProviderManager

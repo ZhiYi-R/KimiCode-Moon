@@ -495,4 +495,17 @@ describe('DaemonKimiWebApi phase-B gap-closure surface', () => {
     expect(url).toBe('http://daemon.test/api/v1/providers:import_registry');
     expect(JSON.parse(String(init.body))).toEqual({ url: 'https://x/api.json' });
   });
+
+  it('fetches managed-account usage', async () => {
+    const usage = {
+      kind: 'ok',
+      summary: { used: 100, limit: 1000 },
+      limits: [],
+      extra_usage: null,
+    };
+    vi.mocked(fetch).mockResolvedValue(envelope(usage));
+    const result = await createApi().getOAuthUsage();
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('http://daemon.test/api/v1/oauth/usage');
+    expect(result.kind).toBe('ok');
+  });
 });

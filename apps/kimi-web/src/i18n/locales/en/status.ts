@@ -64,4 +64,8 @@ export default {
   activityAwaitingQuestion: 'Awaiting answer',
   interrupt: 'Interrupt',
   runningShort: 'in progress',
+  quota: 'Plan usage',
+  quotaValue: '{used} / {limit}',
+  wallet: 'Wallet',
+  walletValue: '{balance} / {total} {currency}',
 } as const;

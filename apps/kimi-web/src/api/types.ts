@@ -677,6 +677,7 @@ export interface AppConfig {
   loopControl?: unknown;
   background?: unknown;
   experimental?: Record<string, boolean>;
+  secondaryModel?: { model?: string; defaultEffort?: string };
   telemetry?: boolean;
   raw?: Record<string, unknown>;
 }
@@ -848,6 +849,8 @@ export interface KimiWebApi {
     baseUrl?: string;
   }): Promise<unknown>;
   importRegistry(input: { url: string; apiKey?: string }): Promise<unknown>;
+  /** Managed-account plan usage (limits + booster wallet). */
+  getOAuthUsage(): Promise<WireOAuthUsage>;
 
   // Auth — REAL endpoints
   getAuth(): Promise<{
@@ -961,6 +964,35 @@ export interface WireCatalogProvider {
   env_key: string | null;
   models: Array<{ id: string; name?: string }>;
 }
+
+/** GET /oauth/usage result (managed plan usage + booster wallet). */
+export type WireOAuthUsage =
+  | {
+      kind: 'ok';
+      summary: {
+        name?: string;
+        window?: { duration: number; unit: 'minute' | 'hour' | 'day' | 'week' };
+        used: number;
+        limit: number;
+        reset_at?: string;
+      } | null;
+      limits: Array<{
+        name?: string;
+        window?: { duration: number; unit: 'minute' | 'hour' | 'day' | 'week' };
+        used: number;
+        limit: number;
+        reset_at?: string;
+      }>;
+      extra_usage: {
+        balance_cents: number;
+        total_cents: number;
+        monthly_charge_limit_enabled: boolean;
+        monthly_charge_limit_cents: number;
+        monthly_used_cents: number;
+        currency: string;
+      } | null;
+    }
+  | { kind: 'error'; message: string; status?: number };
 
 /** Result of `startOAuthLogin()`, mirroring the wire discriminated union. */
 export type OAuthLoginStartResult =

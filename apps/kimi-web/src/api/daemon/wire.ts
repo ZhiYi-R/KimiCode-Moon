@@ -420,6 +420,7 @@ export interface WireConfig {
   loop_control?: unknown;
   background?: unknown;
   experimental?: Record<string, boolean>;
+  secondary_model?: { model?: string; default_effort?: string };
   telemetry?: boolean;
   raw?: Record<string, unknown>;
 }

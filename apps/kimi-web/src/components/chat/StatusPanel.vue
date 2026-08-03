@@ -2,10 +2,11 @@
 <!-- /status overlay — renders the CURRENT session status from existing client -->
 <!-- state (no daemon call). Built on the design-system Dialog primitive. -->
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ConversationStatus, PermissionMode } from '../../types';
-import type { ThinkingLevel } from '../../api/types';
+import type { ThinkingLevel, WireOAuthUsage } from '../../api/types';
+import { getKimiWebApi } from '../../api';
 import { formatTokens } from '../../lib/formatTokens';
 import Dialog from '../ui/Dialog.vue';
 
@@ -67,6 +68,47 @@ const showCost = computed(() => typeof props.costUsd === 'number' && props.costU
 const costText = computed(() =>
   showCost.value ? `$${(props.costUsd as number).toFixed(4)}` : t('status.statusNone'),
 );
+
+// -------------------------------------------------------------------------
+// Managed-account usage (GET /oauth/usage) — fetched on open, hidden on error.
+// -------------------------------------------------------------------------
+
+const usage = ref<WireOAuthUsage | null>(null);
+
+onMounted(async () => {
+  try {
+    usage.value = await getKimiWebApi().getOAuthUsage();
+  } catch {
+    usage.value = null;
+  }
+});
+
+const usageOk = computed(() => usage.value !== null && usage.value.kind === 'ok');
+const usageSummary = computed(() =>
+  usage.value?.kind === 'ok' ? usage.value.summary : null,
+);
+const usagePercent = computed(() => {
+  const summary = usageSummary.value;
+  if (summary === null || summary.limit <= 0) return null;
+  return Math.min(100, Math.max(0, Math.ceil((summary.used / summary.limit) * 100)));
+});
+const usageText = computed(() => {
+  const summary = usageSummary.value;
+  if (summary === null) return t('status.statusNone');
+  return t('status.quotaValue', {
+    used: formatTokens(summary.used),
+    limit: formatTokens(summary.limit),
+  });
+});
+const walletText = computed(() => {
+  const wallet = usage.value?.kind === 'ok' ? usage.value.extra_usage : null;
+  if (wallet === null) return null;
+  return t('status.walletValue', {
+    balance: (wallet.balance_cents / 100).toFixed(2),
+    total: (wallet.total_cents / 100).toFixed(2),
+    currency: wallet.currency,
+  });
+});
 </script>
 
 <template>
@@ -103,6 +145,19 @@ const costText = computed(() =>
         <dt>{{ t('status.statusCost') }}</dt>
         <dd>{{ costText }}</dd>
       </div>
+      <template v-if="usageOk">
+        <div class="row">
+          <dt>{{ t('status.quota') }}</dt>
+          <dd>
+            <span class="ctx-text">{{ usageText }}</span>
+            <span v-if="usagePercent !== null" class="bar"><i :style="{ width: usagePercent + '%' }"></i></span>
+          </dd>
+        </div>
+        <div v-if="walletText !== null" class="row">
+          <dt>{{ t('status.wallet') }}</dt>
+          <dd>{{ walletText }}</dd>
+        </div>
+      </template>
     </dl>
   </Dialog>
 </template>

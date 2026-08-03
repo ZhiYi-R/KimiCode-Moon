@@ -67,6 +67,8 @@ import en_workspaceDirs from './en/workspaceDirs';
 import zh_workspaceDirs from './zh/workspaceDirs';
 import en_goals from './en/goals';
 import zh_goals from './zh/goals';
+import en_help from './en/help';
+import zh_help from './zh/help';
 
 export const messages = {
   en: {
@@ -104,6 +106,7 @@ export const messages = {
     cronSettings: en_cronSettings,
     workspaceDirs: en_workspaceDirs,
     goals: en_goals,
+    help: en_help,
   },
   zh: {
     common: zh_common,
@@ -140,6 +143,7 @@ export const messages = {
     cronSettings: zh_cronSettings,
     workspaceDirs: zh_workspaceDirs,
     goals: zh_goals,
+    help: zh_help,
   },
 } as const;
 

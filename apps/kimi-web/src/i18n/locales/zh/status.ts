@@ -63,4 +63,8 @@ export default {
   activityAwaitingQuestion: '等待回答',
   interrupt: '中断',
   runningShort: '进行中',
+  quota: '套餐用量',
+  quotaValue: '{used} / {limit}',
+  wallet: '钱包',
+  walletValue: '{balance} / {total} {currency}',
 };
