@@ -96,6 +96,38 @@ export class FileProjectLocalConfigService implements IProjectLocalConfigService
     return { projectRoot, configPath, additionalDirs: [...fileExistingDirs, additionalDir] };
   }
 
+  async removeAdditionalDir(
+    workDir: string,
+    dir: string,
+  ): Promise<ProjectAdditionalDirsLoadResult> {
+    const projectRoot = await this.findProjectRoot(workDir);
+    const configPath = this.getProjectLocalConfigPath(projectRoot);
+    const file = await this.readProjectLocalToml(configPath);
+    if (file === undefined) {
+      return { projectRoot, configPath, additionalDirs: [] };
+    }
+    const fileAdditionalDirs = file.parsed.workspace?.additional_dir ?? [];
+    const fileExistingDirs = this.resolveExistingAdditionalDirs(projectRoot, fileAdditionalDirs);
+    const target = normalize(dir);
+    const remaining = fileExistingDirs.filter((entry) => normalize(entry) !== target);
+    if (remaining.length === fileExistingDirs.length) {
+      // No matching entry on disk — nothing to persist (the caller still
+      // removes the in-memory ephemeral side).
+      return { projectRoot, configPath, additionalDirs: fileExistingDirs };
+    }
+
+    const workspace = cloneRecord(file.raw['workspace']);
+    workspace['additional_dir'] = remaining;
+    file.raw['workspace'] = workspace;
+    try {
+      await this.fs.mkdir(dirname(configPath), { recursive: true });
+      await this.fs.writeText(configPath, `${stringifyToml(file.raw)}\n`);
+    } catch (error: unknown) {
+      throw toStorageIoError(error, { path: configPath, op: 'write' });
+    }
+    return { projectRoot, configPath, additionalDirs: remaining };
+  }
+
   private getProjectLocalConfigPath(projectRoot: string): string {
     return join(projectRoot, '.kimi-code', 'local.toml');
   }

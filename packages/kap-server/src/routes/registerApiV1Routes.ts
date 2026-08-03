@@ -43,8 +43,13 @@ import { registerTasksRoutes } from './tasks';
 import { registerTerminalsRoutes } from './terminals';
 import { registerToolsRoutes } from './tools';
 import { registerTranscriptRoutes } from './transcript';
+import { registerWorkspaceDirsRoutes } from './workspace-dirs';
 import { registerWorkspaceFsRoutes } from './workspaceFs';
 import { registerWorkspacesRoutes } from './workspaces';
+import { registerMcpConfigRoutes } from './mcp-servers';
+import { registerCronRoutes } from './cron';
+import { registerPluginsRoutes } from './plugins';
+import type { GlobalMcpConfigService } from '../services/mcpConfig/globalMcpConfigService';
 
 interface ApiV1AppHost {
   register(
@@ -82,6 +87,8 @@ export interface RegisterApiV1RoutesOptions {
    * flag).
    */
   readonly dangerousBypassAuth?: boolean;
+  /** User-global MCP config service (`<home>/mcp.json` CRUD + OAuth + probe). */
+  readonly mcpConfig: GlobalMcpConfigService;
 }
 
 export async function registerApiV1Routes(
@@ -171,6 +178,16 @@ export async function registerApiV1Routes(
       registerConnectionsRoutes(
         apiV1 as unknown as Parameters<typeof registerConnectionsRoutes>[0],
         opts.connectionRegistry,
+      );
+      registerMcpConfigRoutes(
+        apiV1 as unknown as Parameters<typeof registerMcpConfigRoutes>[0],
+        opts.mcpConfig,
+      );
+      registerCronRoutes(apiV1 as unknown as Parameters<typeof registerCronRoutes>[0], core);
+      registerPluginsRoutes(apiV1 as unknown as Parameters<typeof registerPluginsRoutes>[0], core);
+      registerWorkspaceDirsRoutes(
+        apiV1 as unknown as Parameters<typeof registerWorkspaceDirsRoutes>[0],
+        core,
       );
       registerSnapshotRoutes(apiV1 as unknown as Parameters<typeof registerSnapshotRoutes>[0], {
         core,

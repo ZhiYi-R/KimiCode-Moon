@@ -20,7 +20,7 @@
 
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'pathe';
+import { join, normalize } from 'pathe';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -526,5 +526,64 @@ describe('workspace add-dir (handler chain)', () => {
     const s2 = await service.create({ sessionId: 's2', workDir: root });
     expect(dirsOf(s2)).toEqual([extra]);
     await expect(readFile(join(root, '.kimi-code', 'local.toml'), 'utf8')).rejects.toThrow();
+  });
+
+  it('removeDir drops a persisted dir from local.toml and refreshes live sessions', async () => {
+    const homeDir = await makeRoot('kimi-add-dir-home-');
+    const root = await makeProjectRoot();
+    const extra = await makeRoot('kimi-add-dir-extra-');
+    const host = buildHost(homeDir);
+    const { service, dirs } = await handlerFor(host, root);
+    const s1 = await service.create({ sessionId: 's1', workDir: root });
+
+    await dirs.addDir({ path: extra, persist: true });
+    // Path shape is platform-specific in the session view (node:path on
+    // Windows); length + the service-level result above pin the semantics.
+    expect(dirsOf(s1)).toHaveLength(1);
+
+    const result = await dirs.removeDir({ dir: extra });
+
+    expect(result.additionalDirs).toEqual([]);
+    expect(dirsOf(s1)).toEqual([]);
+    // The on-disk entry is gone.
+    const toml = await readFile(join(root, '.kimi-code', 'local.toml'), 'utf8');
+    expect(toml).not.toContain(normalize(extra));
+  });
+
+  it('removeDir drops an ephemeral dir without touching the disk', async () => {
+    const homeDir = await makeRoot('kimi-add-dir-home-');
+    const root = await makeProjectRoot();
+    const extra = await makeRoot('kimi-add-dir-extra-');
+    const host = buildHost(homeDir);
+    const { service, dirs } = await handlerFor(host, root);
+    const s1 = await service.create({ sessionId: 's1', workDir: root });
+
+    await dirs.addDir({ path: extra, persist: false });
+    expect(dirsOf(s1)).toHaveLength(1);
+
+    const result = await dirs.removeDir({ dir: extra });
+
+    expect(result.additionalDirs).toEqual([]);
+    expect(dirsOf(s1)).toEqual([]);
+    // Nothing was ever written, and nothing is written by the removal.
+    await expect(readFile(join(root, '.kimi-code', 'local.toml'), 'utf8')).rejects.toThrow();
+  });
+
+  it('removeDir of an unknown dir is a no-op that keeps the list', async () => {
+    const homeDir = await makeRoot('kimi-add-dir-home-');
+    const root = await makeProjectRoot();
+    const extra = await makeRoot('kimi-add-dir-extra-');
+    const unknown = await makeRoot('kimi-add-dir-unknown-');
+    const host = buildHost(homeDir);
+    const { service, dirs } = await handlerFor(host, root);
+    const s1 = await service.create({ sessionId: 's1', workDir: root });
+
+    await dirs.addDir({ path: extra, persist: true });
+    const result = await dirs.removeDir({ dir: unknown });
+
+    expect(result.additionalDirs).toEqual([normalize(extra)]);
+    expect(dirsOf(s1)).toHaveLength(1);
+    const toml = await readFile(join(root, '.kimi-code', 'local.toml'), 'utf8');
+    expect(toml).toContain(normalize(extra));
   });
 });

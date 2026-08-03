@@ -23,6 +23,11 @@ export interface WorkspaceAddDirInput {
   readonly persist?: boolean;
 }
 
+export interface WorkspaceRemoveDirInput {
+  /** Resolved directory path to remove from both the persisted and ephemeral sets. */
+  readonly dir: string;
+}
+
 export interface WorkspaceAdditionalDirsResult {
   readonly projectRoot: string;
   readonly configPath: string;
@@ -37,6 +42,7 @@ export interface IWorkspaceDirs {
   readonly additionalDirs: readonly string[];
   readonly onDidChange: Event<void>;
   addDir(input: WorkspaceAddDirInput): Promise<WorkspaceAdditionalDirsResult>;
+  removeDir(input: WorkspaceRemoveDirInput): Promise<WorkspaceAdditionalDirsResult>;
   mergeAdditionalDirs(baseDir: string, dirs: readonly string[]): Promise<void>;
   sessionInfo(): ISessionWorkspaceInfo;
 }

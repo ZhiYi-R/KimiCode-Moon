@@ -25,6 +25,13 @@ export interface IProjectLocalConfigService {
     workDir: string,
     inputPath: string,
   ): Promise<ProjectAdditionalDirsLoadResult>;
+  /**
+   * Remove a resolved directory from the project-local `additional_dir` list.
+   * `dir` is matched against the resolved on-disk entries (the file stores
+   * resolved paths, same as `appendAdditionalDir` writes). Returns the
+   * current on-disk state; a non-matching `dir` is a no-op.
+   */
+  removeAdditionalDir(workDir: string, dir: string): Promise<ProjectAdditionalDirsLoadResult>;
 }
 
 export const IProjectLocalConfigService: ServiceIdentifier<IProjectLocalConfigService> =

@@ -29,11 +29,13 @@ import { IHostFsWatchService } from '#/os/interface/hostFsWatch';
 import type { ISessionWorkspaceInfo } from '#/session/workspaceInfo/workspaceInfo';
 import { IWorkspaceStateService } from '#/workspace/state/workspaceState';
 import { IWorkspaceContext } from '#/workspace/workspaceContext/workspaceContext';
+import { normalize } from 'pathe';
 
 import {
   IWorkspaceDirs,
   type WorkspaceAddDirInput,
   type WorkspaceAdditionalDirsResult,
+  type WorkspaceRemoveDirInput,
 } from './workspaceDirs';
 
 const WATCH_DEBOUNCE_MS = 200;
@@ -98,6 +100,10 @@ export class WorkspaceDirsService extends Disposable implements IWorkspaceDirs {
     return this.enqueue(() => this.applyAddDir(input));
   }
 
+  removeDir(input: WorkspaceRemoveDirInput): Promise<WorkspaceAdditionalDirsResult> {
+    return this.enqueue(() => this.applyRemoveDir(input.dir));
+  }
+
   mergeAdditionalDirs(baseDir: string, dirs: readonly string[]): Promise<void> {
     if (dirs.length === 0) return Promise.resolve();
     return this.enqueue(async () => {
@@ -158,6 +164,33 @@ export class WorkspaceDirsService extends Disposable implements IWorkspaceDirs {
       additionalDirs: this.additionalDirs,
       persisted: false,
     };
+  }
+
+  private async applyRemoveDir(dir: string): Promise<WorkspaceAdditionalDirsResult> {
+    const normalized = normalize(dir);
+    // Drop the in-memory (non-persisted) entry first, then the on-disk entry;
+    // either change fans out through onDidChange to every session of the
+    // handler (the fs services re-read the live set per call).
+    const ephemeralChanged = this.removeEphemeral(normalized);
+    const persisted = await this.localConfig.removeAdditionalDir(this.workspace.cwd, normalized);
+    this.projectRoot = persisted.projectRoot;
+    this.configPath = persisted.configPath;
+    const fileChanged = this.setFileDirs(persisted.additionalDirs);
+    if (ephemeralChanged || fileChanged) {
+      this.onDidChangeEmitter.fire();
+    }
+    return {
+      projectRoot: persisted.projectRoot,
+      configPath: persisted.configPath,
+      additionalDirs: this.additionalDirs,
+      persisted: true,
+    };
+  }
+
+  private removeEphemeral(dir: string): boolean {
+    const before = this.additionalDirs;
+    this.ephemeralDirs = this.ephemeralDirs.filter((entry) => normalize(entry) !== dir);
+    return !sameStringList(before, this.additionalDirs);
   }
 
   private async reloadFromDisk(): Promise<void> {

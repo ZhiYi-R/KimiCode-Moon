@@ -68,6 +68,7 @@ import {
   shutdownServerTelemetry,
 } from './services/telemetry';
 import { TranscriptService } from './services/transcript/transcriptService';
+import { GlobalMcpConfigService } from './services/mcpConfig/globalMcpConfigService';
 import { ModelCatalogRefreshScheduler } from './services/modelCatalog/modelCatalogRefreshScheduler';
 import { createAuthFailureLimiter } from './middleware/rateLimit';
 import {
@@ -378,6 +379,7 @@ export async function startServer(opts: ServerStartOptions): Promise<RunningServ
   // service is constructed here by hand — wire the former to the latter so
   // container-scoped searches on live sessions scan the in-memory transcript.
   core.accessor.get(IGlobalSearchService).setLiveTranscriptSource(transcriptService);
+  const mcpConfig = new GlobalMcpConfigService(core, homeDir);
   const broadcaster = new SessionEventBroadcaster({
     eventsDir: join(homeDir, 'server', 'events'),
     core,
@@ -442,6 +444,7 @@ export async function startServer(opts: ServerStartOptions): Promise<RunningServ
     connectionRegistry,
     broadcaster,
     transcriptService,
+    mcpConfig,
     dangerousBypassAuth: opts.disableAuth === true,
   });
 

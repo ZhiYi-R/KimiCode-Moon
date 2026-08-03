@@ -26,6 +26,14 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     ],
     [
       "DELETE",
+      "/api/v1/mcp/servers/{mcp_server_id}",
+    ],
+    [
+      "DELETE",
+      "/api/v1/mcp/servers/{mcp_server_id}/auth",
+    ],
+    [
+      "DELETE",
       "/api/v1/oauth/login",
     ],
     [
@@ -34,7 +42,15 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     ],
     [
       "DELETE",
+      "/api/v1/sessions/{session_id}/cron/{task_id}",
+    ],
+    [
+      "DELETE",
       "/api/v1/workspaces/{workspace_id}",
+    ],
+    [
+      "DELETE",
+      "/api/v1/workspaces/{workspace_id}/dirs",
     ],
     [
       "GET",
@@ -130,6 +146,10 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     ],
     [
       "GET",
+      "/api/v1/plugins",
+    ],
+    [
+      "GET",
       "/api/v1/providers",
     ],
     [
@@ -151,6 +171,10 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     [
       "GET",
       "/api/v1/sessions/{session_id}/children",
+    ],
+    [
+      "GET",
+      "/api/v1/sessions/{session_id}/cron",
     ],
     [
       "GET",
@@ -238,6 +262,10 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     ],
     [
       "GET",
+      "/api/v1/workspaces/{workspace_id}/dirs",
+    ],
+    [
+      "GET",
       "/api/v1/workspaces/{workspace_id}/skills",
     ],
     [
@@ -298,6 +326,26 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     ],
     [
       "POST",
+      "/api/v1/mcp/servers",
+    ],
+    [
+      "POST",
+      "/api/v1/mcp/servers/{mcp_server_id}/auth",
+    ],
+    [
+      "POST",
+      "/api/v1/mcp/servers/{mcp_server_id}/auth/cancel",
+    ],
+    [
+      "POST",
+      "/api/v1/mcp/servers/{mcp_server_id}/auth/complete",
+    ],
+    [
+      "POST",
+      "/api/v1/mcp/servers/{mcp_server_id}/test",
+    ],
+    [
+      "POST",
       "/api/v1/mcp/servers/{tail}",
     ],
     [
@@ -311,6 +359,14 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     [
       "POST",
       "/api/v1/oauth/logout",
+    ],
+    [
+      "POST",
+      "/api/v1/plugins/{plugin_id}/install",
+    ],
+    [
+      "POST",
+      "/api/v1/plugins/{plugin_id}/uninstall",
     ],
     [
       "POST",
@@ -347,6 +403,10 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     [
       "POST",
       "/api/v1/sessions/{session_id}/children",
+    ],
+    [
+      "POST",
+      "/api/v1/sessions/{session_id}/cron",
     ],
     [
       "POST",
@@ -399,6 +459,10 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     [
       "POST",
       "/api/v1/workspaces",
+    ],
+    [
+      "POST",
+      "/api/v1/workspaces/{workspace_id}/dirs",
     ],
     [
       "POST",

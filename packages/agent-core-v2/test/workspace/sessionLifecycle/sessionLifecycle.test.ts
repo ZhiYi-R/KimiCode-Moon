@@ -252,6 +252,7 @@ function projectLocalConfigStub(
     resolveAdditionalDirs: (baseDir: string, dirs: readonly string[]) =>
       Promise.resolve(dirs.map((d) => (isAbsolute(d) ? resolve(d) : resolve(baseDir, d)))),
     appendAdditionalDir: () => Promise.reject(new Error('not implemented')),
+    removeAdditionalDir: () => Promise.reject(new Error('not implemented')),
   };
 }
 
