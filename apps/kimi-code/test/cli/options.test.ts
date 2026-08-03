@@ -51,6 +51,7 @@ describe('CLI options parsing', () => {
       expect(opts.agent).toBeUndefined();
       expect(opts.agentFiles).toEqual([]);
       expect(opts.addDirs).toEqual([]);
+      expect(opts.tui).toBe(false);
     });
   });
 
@@ -172,6 +173,47 @@ describe('CLI options parsing', () => {
       const opts = parse(['--continue', '--session', 'abc123']);
       expect(() => validateOptions(opts)).toThrow(OptionConflictError);
       expect(() => validateOptions(opts)).toThrow('Cannot combine --continue, --session.');
+    });
+  });
+
+  describe('--tui / desktop default', () => {
+    it('--tui sets tui and resolves to shell mode', () => {
+      const opts = parse(['--tui']);
+      expect(opts.tui).toBe(true);
+      expect(validateOptions(opts).uiMode).toBe('shell');
+    });
+
+    it('a bare kimi invocation defaults to desktop mode', () => {
+      expect(validateOptions(parse([])).uiMode).toBe('desktop');
+    });
+
+    it('any session-scoped argument resolves to shell mode, not desktop', () => {
+      for (const argv of [
+        ['--yolo'],
+        ['--auto'],
+        ['--plan'],
+        ['-m', 'kimi-code/k2'],
+        ['--continue'],
+        ['--session', 'ses_123'],
+        ['--agent', 'reviewer'],
+        ['--agent-file', 'a.md'],
+        ['--skills-dir', '/s'],
+        ['--add-dir', '/shared'],
+      ]) {
+        expect(validateOptions(parse(argv)).uiMode).toBe('shell');
+      }
+    });
+
+    it('rejects --tui combined with --prompt', () => {
+      const opts = parse(['-p', 'hi', '--tui']);
+      expect(() => validateOptions(opts)).toThrow(OptionConflictError);
+      expect(() => validateOptions(opts)).toThrow('Cannot combine --prompt with --tui.');
+    });
+
+    it('describes --tui in the help text', () => {
+      const help = createProgram('0.1.0-test', () => {}, () => {}).helpInformation();
+      expect(help).toContain('--tui');
+      expect(help).toContain('terminal UI');
     });
   });
 

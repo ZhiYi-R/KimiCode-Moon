@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => {
     runUpdatePreflight: vi.fn(),
     runShell: vi.fn(),
     runPrompt: vi.fn(),
+    tryLaunchDesktopApp: vi.fn(),
     installCrashHandlers: vi.fn(),
     track: vi.fn(),
     setTelemetryContext: vi.fn(),
@@ -130,6 +131,11 @@ vi.mock('../../src/cli/run-prompt', () => ({
   runPrompt: mocks.runPrompt,
 }));
 
+vi.mock('../../src/cli/desktop-launcher', () => ({
+  tryLaunchDesktopApp: mocks.tryLaunchDesktopApp,
+  DESKTOP_APP_HOMEPAGE: 'https://www.kimi.com/code',
+}));
+
 vi.mock('../../src/cli/headless-exit', () => ({
   finalizeHeadlessRun: mocks.finalizeHeadlessRun,
 }));
@@ -153,6 +159,7 @@ function defaultOpts(): CLIOptions {
     skillsDirs: [],
     agent: undefined,
     agentFiles: [],
+    tui: false,
   };
 }
 
@@ -331,6 +338,72 @@ describe('main entry command handling', () => {
     } finally {
       exitSpy.mockRestore();
       process.exitCode = originalExitCode;
+    }
+  });
+
+  it('launches the desktop app in desktop mode and skips the shell', async () => {
+    const opts = defaultOpts();
+    mocks.validateOptions.mockReturnValue({ options: opts, uiMode: 'desktop' });
+    mocks.runUpdatePreflight.mockResolvedValue('continue');
+    mocks.tryLaunchDesktopApp.mockResolvedValue({ launched: true, command: '/app' });
+
+    const outcome = await handleMainCommand(opts, '0.0.1-alpha.2');
+
+    expect(mocks.tryLaunchDesktopApp).toHaveBeenCalledTimes(1);
+    expect(runShell).not.toHaveBeenCalled();
+    expect(outcome).toEqual({ headlessCompleted: false });
+  });
+
+  it('falls back to the shell with an install hint when the desktop app is missing', async () => {
+    const opts = defaultOpts();
+    mocks.validateOptions.mockReturnValue({ options: opts, uiMode: 'desktop' });
+    mocks.runUpdatePreflight.mockResolvedValue('continue');
+    mocks.tryLaunchDesktopApp.mockResolvedValue({ launched: false, reason: 'not-installed' });
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    try {
+      const outcome = await handleMainCommand(opts, '0.0.1-alpha.2');
+
+      expect(runShell).toHaveBeenCalledWith(opts, '0.0.1-alpha.2');
+      expect(outcome).toEqual({ headlessCompleted: false });
+      expect(stderr).toHaveBeenCalledWith(expect.stringContaining('https://www.kimi.com/code'));
+    } finally {
+      stderr.mockRestore();
+    }
+  });
+
+  it('falls back to the shell silently when there is no display', async () => {
+    const opts = defaultOpts();
+    mocks.validateOptions.mockReturnValue({ options: opts, uiMode: 'desktop' });
+    mocks.runUpdatePreflight.mockResolvedValue('continue');
+    mocks.tryLaunchDesktopApp.mockResolvedValue({ launched: false, reason: 'no-display' });
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    try {
+      const outcome = await handleMainCommand(opts, '0.0.1-alpha.2');
+
+      expect(runShell).toHaveBeenCalledWith(opts, '0.0.1-alpha.2');
+      expect(outcome).toEqual({ headlessCompleted: false });
+      expect(stderr).not.toHaveBeenCalled();
+    } finally {
+      stderr.mockRestore();
+    }
+  });
+
+  it('falls back to the shell with a hint when the desktop app spawn fails', async () => {
+    const opts = defaultOpts();
+    mocks.validateOptions.mockReturnValue({ options: opts, uiMode: 'desktop' });
+    mocks.runUpdatePreflight.mockResolvedValue('continue');
+    mocks.tryLaunchDesktopApp.mockResolvedValue({ launched: false, reason: 'spawn-failed' });
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    try {
+      await handleMainCommand(opts, '0.0.1-alpha.2');
+
+      expect(runShell).toHaveBeenCalledWith(opts, '0.0.1-alpha.2');
+      expect(stderr).toHaveBeenCalledWith(expect.stringContaining('Failed to launch the desktop app'));
+    } finally {
+      stderr.mockRestore();
     }
   });
 

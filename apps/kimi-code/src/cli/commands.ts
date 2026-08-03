@@ -111,7 +111,12 @@ export function createProgram(
     )
     .addOption(new Option('--yes').hideHelp().default(false))
     .addOption(new Option('--auto-approve').hideHelp().default(false))
-    .option('--plan', 'Start in plan mode.', false);
+    .option('--plan', 'Start in plan mode.', false)
+    .option(
+      '--tui',
+      'Launch the terminal UI instead of the desktop app. The default is the desktop app when no session arguments are given.',
+      false,
+    );
 
   registerExportCommand(program);
   registerProviderCommand(program);
@@ -163,6 +168,7 @@ export function createProgram(
       agent: raw['agent'] as string | undefined,
       agentFiles: raw['agentFile'] as string[],
       addDirs: raw['addDir'] as string[],
+      tui: raw['tui'] as boolean,
     };
 
     onMain(opts);

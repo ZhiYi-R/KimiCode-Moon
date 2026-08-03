@@ -23,6 +23,7 @@ import {
 } from '@moonshot-ai/kimi-telemetry';
 
 import { createProgram } from './cli/commands';
+import { DESKTOP_APP_HOMEPAGE, tryLaunchDesktopApp } from './cli/desktop-launcher';
 import { finalizeHeadlessRun } from './cli/headless-exit';
 import type { CLIOptions } from './cli/options';
 import { OptionConflictError, validateOptions } from './cli/options';
@@ -77,6 +78,24 @@ export async function handleMainCommand(
   if (validated.uiMode === 'print') {
     await runPrompt(validated.options, version);
     return { headlessCompleted: true };
+  }
+
+  if (validated.uiMode === 'desktop') {
+    const launch = await tryLaunchDesktopApp();
+    if (launch.launched) {
+      // The app runs detached; this process exits on its own as the event
+      // loop drains.
+      return { headlessCompleted: false };
+    }
+    if (launch.reason === 'not-installed') {
+      process.stderr.write(
+        `Desktop app not found; starting the terminal UI. Install the desktop app from ${DESKTOP_APP_HOMEPAGE}, or use --tui to skip this check.\n`,
+      );
+    } else if (launch.reason === 'spawn-failed') {
+      process.stderr.write('Failed to launch the desktop app; starting the terminal UI.\n');
+    }
+    // `no-display` falls through silently: headless environments (SSH/CI)
+    // should just get the terminal UI without commentary.
   }
 
   await runShell(validated.options, version);

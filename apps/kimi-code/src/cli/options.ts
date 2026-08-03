@@ -1,4 +1,4 @@
-export type UIMode = 'shell' | 'print';
+export type UIMode = 'shell' | 'print' | 'desktop';
 export type PromptOutputFormat = 'text' | 'stream-json';
 
 /** Environment variable that sets the default `-p` output format (flag wins). */
@@ -47,6 +47,8 @@ export interface CLIOptions {
   agent: string | undefined;
   agentFiles: string[];
   addDirs?: string[];
+  /** Force the terminal UI (`--tui`) instead of the default desktop app. */
+  tui?: boolean;
 }
 
 export interface ValidatedOptions {
@@ -114,8 +116,37 @@ export function validateOptions(
   if (opts.yolo && opts.auto) {
     throw new OptionConflictError('Cannot combine --yolo with --auto.');
   }
+  if (promptMode && opts.tui) {
+    throw new OptionConflictError('Cannot combine --prompt with --tui.');
+  }
   // Validate `KIMI_MODEL_OUTPUT_FORMAT` eagerly in prompt mode so a typo fails
   // fast through the friendly `error:` path instead of mid-run.
   if (promptMode) resolveOutputFormat(opts, env);
-  return { options: opts, uiMode: promptMode ? 'print' : 'shell' };
+  return { options: opts, uiMode: resolveUiMode(opts) };
+}
+
+/**
+ * Resolve the entry UI mode:
+ * - `--prompt` → headless print mode;
+ * - `--tui` → terminal UI (explicit);
+ * - any session-scoped argument (`-S/-c/-y/--auto/--plan/-m/--agent/…`) →
+ *   terminal UI: these configure one terminal session, which the long-running
+ *   desktop app does not consume;
+ * - a bare `kimi` → the desktop app (the default GUI entry).
+ */
+function resolveUiMode(opts: CLIOptions): UIMode {
+  if (opts.prompt !== undefined) return 'print';
+  if (opts.tui === true) return 'shell';
+  const hasSessionArgs =
+    opts.session !== undefined ||
+    opts.continue ||
+    opts.yolo ||
+    opts.auto ||
+    opts.plan ||
+    opts.model !== undefined ||
+    opts.skillsDirs.length > 0 ||
+    opts.agent !== undefined ||
+    opts.agentFiles.length > 0 ||
+    (opts.addDirs?.length ?? 0) > 0;
+  return hasSessionArgs ? 'shell' : 'desktop';
 }
