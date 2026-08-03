@@ -1,2 +1,4 @@
 # Staged web UI bundle, copied from apps/kimi-web/dist by scripts/copy-web-assets.mjs.
 resources/web/
+# electron-builder output (win-unpacked, installers, etc.).
+dist-app/
