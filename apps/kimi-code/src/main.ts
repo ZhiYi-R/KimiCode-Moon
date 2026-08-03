@@ -25,6 +25,10 @@ import {
 import { createProgram } from './cli/commands';
 import { DESKTOP_APP_HOMEPAGE, tryLaunchDesktopApp } from './cli/desktop-launcher';
 import { finalizeHeadlessRun } from './cli/headless-exit';
+import { getDataDir } from './utils/paths';
+import { runHomeMigration } from '@moonshot-ai/migration-legacy';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { CLIOptions } from './cli/options';
 import { OptionConflictError, validateOptions } from './cli/options';
 import { runPrompt } from './cli/run-prompt';
@@ -66,6 +70,8 @@ export async function handleMainCommand(
     }
     throw error;
   }
+
+  await migrateLegacyHomeIfNeeded();
 
   const preflightResult = await runUpdatePreflight(
     version,
@@ -243,6 +249,33 @@ export function main(): void {
 }
 
 main();
+
+/**
+ * One-time relocation of the legacy `~/.kimi-code` data root into the new
+ * platform application-data directory (the shared `runHomeMigration`, also
+ * run by the desktop app). An explicit `KIMI_CODE_HOME` skips it; a failure
+ * only warns — the CLI keeps running (the data stays in the legacy location)
+ * instead of blocking headless usage.
+ */
+async function migrateLegacyHomeIfNeeded(): Promise<void> {
+  if (process.env['KIMI_CODE_HOME'] !== undefined) return;
+  const sourceHome = join(homedir(), '.kimi-code');
+  const targetHome = getDataDir();
+  try {
+    const result = await runHomeMigration({ sourceHome, targetHome });
+    if (result.migrated) {
+      log.info('migrated data to the platform app-data directory', {
+        sourceHome,
+        targetHome,
+        copied: result.copied,
+      });
+    }
+  } catch (error) {
+    process.stderr.write(
+      `warning: could not migrate data from ${sourceHome} to ${targetHome}: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+  }
+}
 
 async function logStartupFailure(operation: string, error: unknown): Promise<void> {
   log.error('startup failed', { operation, error });

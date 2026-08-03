@@ -14,3 +14,16 @@ export {
   type Prompt1Choice,
   type Prompt2Choice,
 } from './prompt.js';
+export {
+  HOME_MIGRATION_MARKER_NAME,
+  HOME_MIGRATION_LOCK_NAME,
+  HOME_USER_DATA_ENTRIES,
+  homeMigrationLock,
+  homeMigrationMarker,
+  runHomeMigration,
+  shouldSuppressHomeMigration,
+  targetHasData,
+  type HomeMigrationInput,
+  type HomeMigrationReason,
+  type HomeMigrationResult,
+} from './home-migration.js';

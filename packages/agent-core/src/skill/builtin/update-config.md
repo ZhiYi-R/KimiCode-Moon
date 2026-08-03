@@ -11,14 +11,14 @@ Help the user inspect, change, and validate kimi-code's configuration files. The
 
 kimi-code has two TOML config files, both under `<KIMI_CODE_HOME>/`, both snake_case, but with different ownership — decide which one the user means before doing anything.
 
-The runtime resolves the data directory as `KIMI_CODE_HOME` first, falling back to `~/.kimi-code`. Before doing anything, resolve the actual directory with Bash so you don't write to the wrong place. Check whether `KIMI_CODE_HOME` is set and fall back to `~/.kimi-code` when it is empty:
+The runtime resolves the data directory as `KIMI_CODE_HOME` first, falling back to the platform app-data directory (e.g. %APPDATA%Kimi Code). Before doing anything, resolve the actual directory with Bash so you don't write to the wrong place. Check whether `KIMI_CODE_HOME` is set and fall back to the platform app-data directory (e.g. %APPDATA%Kimi Code) when it is empty:
 
 ```bash
 echo "$KIMI_CODE_HOME"
 echo "$HOME/.kimi-code"
 ```
 
-Use the first line when it is non-empty; otherwise use the second line. In the rest of this skill, `<KIMI_CODE_HOME>` means that resolved root — **never assume `~/.kimi-code`**.
+Use the first line when it is non-empty; otherwise use the second line. In the rest of this skill, `<KIMI_CODE_HOME>` means that resolved root — **never assume `~/.kimi-code` (legacy location)**.
 
 - **`config.toml`** — agent / runtime settings: `default_model`, `secondary_model` (subagent model), `providers`, `models`, `thinking`, `permission`, `hooks`, `loop_control`, etc.
 - **`tui.toml`** — terminal-UI / client preferences: `theme`, `[editor].command`, `[notifications]`, `[upgrade].auto_install` (auto-update). These can usually also be changed with the interactive commands `/config`, `/theme`, `/editor`, which is easier — prefer pointing the user at those.

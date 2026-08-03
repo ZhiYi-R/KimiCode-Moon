@@ -16,7 +16,9 @@
     "pack:dir": "pnpm build:web && pnpm build && electron-builder --dir"
   },
   "dependencies": {
-    "@moonshot-ai/kap-server": "workspace:*"
+    "@moonshot-ai/kap-server": "workspace:*",
+    "@moonshot-ai/kimi-code-oauth": "workspace:*",
+    "@moonshot-ai/migration-legacy": "workspace:*"
   },
   "devDependencies": {
     "electron": "43.2.0",

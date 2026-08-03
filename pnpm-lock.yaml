@@ -159,6 +159,12 @@ importers:
       '@moonshot-ai/kap-server':
         specifier: workspace:*
         version: link:../../packages/kap-server
+      '@moonshot-ai/kimi-code-oauth':
+        specifier: workspace:*
+        version: link:../../packages/oauth
+      '@moonshot-ai/migration-legacy':
+        specifier: workspace:*
+        version: link:../../packages/migration-legacy
     devDependencies:
       electron:
         specifier: 43.2.0

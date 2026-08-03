@@ -6,16 +6,15 @@
  */
 
 import { createHash } from 'node:crypto';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
+
+import { resolveDefaultKimiHome } from '@moonshot-ai/kimi-code-oauth';
 
 import {
   KIMI_CODE_BANNER_DIR_NAME,
   KIMI_CODE_BANNER_STATE_FILE_NAME,
   KIMI_CODE_BIN_DIR_NAME,
   KIMI_CODE_CACHE_DIR_NAME,
-  KIMI_CODE_DATA_DIR_NAME,
-  KIMI_CODE_HOME_ENV,
   KIMI_CODE_INPUT_HISTORY_DIR_NAME,
   KIMI_CODE_LOG_DIR_NAME,
   KIMI_CODE_PLUGIN_UPDATE_NOTICE_STATE_FILE_NAME,
@@ -29,14 +28,12 @@ import {
 /**
  * Return the root data directory for Kimi Code.
  *
- * Priority: `KIMI_CODE_HOME` env var > `~/.kimi-code`.
+ * Priority: `KIMI_CODE_HOME` env var > the platform application-data
+ * directory (`%APPDATA%\Kimi Code`, `~/Library/Application Support/Kimi
+ * Code`, `~/.config/kimi-code`).
  */
 export function getDataDir(): string {
-  const envDir = process.env[KIMI_CODE_HOME_ENV];
-  if (envDir) {
-    return envDir;
-  }
-  return join(homedir(), KIMI_CODE_DATA_DIR_NAME);
+  return resolveDefaultKimiHome();
 }
 
 /**

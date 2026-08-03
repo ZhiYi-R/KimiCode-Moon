@@ -22,7 +22,10 @@ import { homedir } from 'node:os';
 
 import { join } from 'pathe';
 
-import type { KimiHostIdentity } from '@moonshot-ai/kimi-code-oauth';
+import {
+  resolveDefaultKimiHome,
+  type KimiHostIdentity,
+} from '@moonshot-ai/kimi-code-oauth';
 
 import { SyncDescriptor } from '#/_base/di/descriptors';
 import { createDecorator, type ServiceIdentifier } from '#/_base/di/instantiation';
@@ -205,7 +208,7 @@ export function resolveKimiHome(
   env: NodeJS.ProcessEnv = process.env,
   osHomeDir: string = homedir(),
 ): string {
-  return homeDir ?? env['KIMI_CODE_HOME'] ?? join(osHomeDir, '.kimi-code');
+  return homeDir ?? env['KIMI_CODE_HOME'] ?? resolveDefaultKimiHome(env, osHomeDir);
 }
 
 export function resolveConfigPath(input: {

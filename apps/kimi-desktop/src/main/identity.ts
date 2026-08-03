@@ -10,8 +10,9 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { resolve } from 'node:path';
+
+import { resolveDefaultKimiHome } from '@moonshot-ai/kimi-code-oauth';
 
 export const DESKTOP_PRODUCT_NAME = 'kimi-code-desktop';
 export const DESKTOP_PLATFORM = 'kimi_code_desktop';
@@ -26,7 +27,8 @@ export function getVersion(): string {
   return pkg.version;
 }
 
-/** Same home resolution as the CLI: `KIMI_CODE_HOME` env override, else `~/.kimi-code`. */
+/** Same home resolution as the CLI: `KIMI_CODE_HOME` env override, else the
+ *  platform application-data directory. */
 export function resolveDesktopHomeDir(env: NodeJS.ProcessEnv = process.env): string {
-  return env['KIMI_CODE_HOME'] ?? resolve(homedir(), '.kimi-code');
+  return resolveDefaultKimiHome(env);
 }

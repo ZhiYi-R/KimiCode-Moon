@@ -1,8 +1,8 @@
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { KIMI_CODE_FLOW_CONFIG } from './constants';
 import { OAuthUnauthorizedError } from './errors';
+import { resolveDefaultKimiHome } from './home';
 import {
   assertKimiHostIdentity,
   createKimiDefaultHeaders,
@@ -486,9 +486,7 @@ export function resolveKimiTokenStorageName(input: {
 }
 
 function defaultKimiHome(): string {
-  const override = process.env['KIMI_CODE_HOME'];
-  if (override !== undefined && override.length > 0) return override;
-  return join(homedir(), '.kimi-code');
+  return resolveDefaultKimiHome();
 }
 
 function managedUsageUrl(baseUrl: string | undefined): string {

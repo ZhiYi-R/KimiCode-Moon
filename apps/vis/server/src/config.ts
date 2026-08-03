@@ -1,13 +1,19 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-/** Resolve KIMI_CODE_HOME (env > ~/.kimi-code). */
+/** Resolve the Kimi data root (env > platform app-data dir). */
 export function resolveKimiCodeHome(): string {
   const envHome = process.env['KIMI_CODE_HOME'];
   if (envHome !== undefined && envHome.length > 0) {
     return envHome;
   }
-  return join(homedir(), '.kimi-code');
+  const root =
+    process.platform === 'win32'
+      ? process.env['APPDATA'] ?? join(homedir(), 'AppData', 'Roaming')
+      : process.platform === 'darwin'
+        ? join(homedir(), 'Library', 'Application Support')
+        : process.env['XDG_CONFIG_HOME'] ?? join(homedir(), '.config');
+  return join(root, process.platform === 'linux' ? 'kimi-code' : 'Kimi Code');
 }
 
 /** HTTP port for the vis API server. */

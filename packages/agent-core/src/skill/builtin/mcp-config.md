@@ -41,9 +41,9 @@ Config lives in three files; on key collision, later entries in this
 precedence order override earlier ones.
 
 The kimi-code runtime resolves the user-global directory as `KIMI_CODE_HOME`
-first, falling back to `~/.kimi-code`. Before touching the user-global file,
+first, falling back to the platform app-data directory (e.g. %APPDATA%Kimi Code). Before touching the user-global file,
 resolve the actual directory with Bash so you don't read or write the wrong
-one. Check whether `KIMI_CODE_HOME` is set and fall back to `~/.kimi-code`
+one. Check whether `KIMI_CODE_HOME` is set and fall back to the platform app-data directory (e.g. %APPDATA%Kimi Code)
 when it is empty:
 
 ```bash
@@ -53,7 +53,7 @@ echo "$HOME/.kimi-code"
 
 Use the first line when it is non-empty; otherwise use the second line. In the
 rest of this skill, `<KIMI_CODE_HOME>` means that resolved data root —
-**never assume `~/.kimi-code`**.
+**never assume `~/.kimi-code` (legacy location)**.
 
 - User-global: `<KIMI_CODE_HOME>/mcp.json`. Use for servers you want
   everywhere.

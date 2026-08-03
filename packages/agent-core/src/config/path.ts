@@ -1,9 +1,10 @@
 import { mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'pathe';
 
+import { resolveDefaultKimiHome } from '@moonshot-ai/kimi-code-oauth';
+
 export function resolveKimiHome(homeDir?: string | undefined): string {
-  return homeDir ?? process.env['KIMI_CODE_HOME'] ?? join(homedir(), '.kimi-code');
+  return homeDir ?? resolveDefaultKimiHome();
 }
 
 export function resolveConfigPath(input: {

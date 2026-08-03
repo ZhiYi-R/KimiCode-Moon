@@ -168,6 +168,12 @@ export type {
 } from './custom-registry';
 
 export { KimiOAuthToolkit, resolveKimiTokenStorageName } from './toolkit';
+export {
+  KIMI_CODE_HOME_ENV,
+  kimiAppDataDirName,
+  kimiPlatformAppDataRoot,
+  resolveDefaultKimiHome,
+} from './home';
 export type {
   AuthManagedUserInfoResult,
   AuthManagedUsageResult,

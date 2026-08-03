@@ -66,11 +66,17 @@ interface ServerLockDisk {
   host_version?: string;
 }
 
-/** home resolution per request: `KIMI_CODE_HOME` env, else `~/.kimi-code`. */
+/** home resolution per request: `KIMI_CODE_HOME` env, else the platform app-data dir. */
 export function resolveKimiHomeDir(env: NodeJS.ProcessEnv = process.env): string {
   const fromEnv = env['KIMI_CODE_HOME'];
   if (fromEnv !== undefined && fromEnv.length > 0) return fromEnv;
-  return join(homedir(), '.kimi-code');
+  const root =
+    process.platform === 'win32'
+      ? env['APPDATA'] ?? join(homedir(), 'AppData', 'Roaming')
+      : process.platform === 'darwin'
+        ? join(homedir(), 'Library', 'Application Support')
+        : env['XDG_CONFIG_HOME'] ?? join(homedir(), '.config');
+  return join(root, process.platform === 'linux' ? 'kimi-code' : 'Kimi Code');
 }
 
 /** `process.kill(pid, 0)` probe — same semantics as the server's registry:

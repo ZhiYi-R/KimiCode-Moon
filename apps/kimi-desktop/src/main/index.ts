@@ -20,16 +20,20 @@
 
 import { app, dialog, type BrowserWindow } from 'electron';
 import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
+
+import { runHomeMigration } from '@moonshot-ai/migration-legacy';
 
 import { getVersion, resolveDesktopHomeDir } from './identity';
 import { startDesktopServer, type DesktopServer } from './server';
 import { createMainWindow } from './window';
 
 // Per-home user data: the single-instance lock keys off the userData dir, so
-// instances running against different KIMI_CODE_HOMEs must not contend, and
-// this app's caches never bleed into the CLI's home layout.
-app.setPath('userData', join(resolveDesktopHomeDir(), 'desktop'));
+// instances running against different KIMI_CODE_HOMEs must not contend. The
+// userData dir IS the data root itself — Electron's caches (GPUCache etc.)
+// live alongside the product data.
+app.setPath('userData', resolveDesktopHomeDir());
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
@@ -63,6 +67,7 @@ function resolveWebAssetsDir(): string | undefined {
 async function bootstrap(): Promise<void> {
   const version = getVersion();
   const homeDir = resolveDesktopHomeDir();
+  await migrateLegacyHomeIfNeeded(homeDir);
   const webAssetsDir = resolveWebAssetsDir();
   if (webAssetsDir === undefined) {
     console.warn(
@@ -75,6 +80,37 @@ async function bootstrap(): Promise<void> {
     mainWindow = undefined;
   });
   await runSmokeCheckIfRequested();
+}
+
+/**
+ * One-time relocation of the legacy `~/.kimi-code` data root into the new
+ * platform application-data directory. Runs before the server touches any
+ * data (the single-instance lock is already held, so no other host can be
+ * migrating concurrently). A failed migration blocks startup — the data
+ * must not silently appear lost; the migration is retry-safe.
+ */
+async function migrateLegacyHomeIfNeeded(targetHome: string): Promise<void> {
+  // An explicit KIMI_CODE_HOME means the user pointed us at a directory on
+  // purpose — never migrate.
+  if (process.env['KIMI_CODE_HOME'] !== undefined) return;
+  const sourceHome = join(homedir(), '.kimi-code');
+  try {
+    const result = await runHomeMigration({ sourceHome, targetHome });
+    if (result.migrated) {
+      console.log(
+        `[desktop] migrated data from ${sourceHome} to ${targetHome}: ${(result.copied ?? []).join(', ')}`,
+      );
+    }
+  } catch (error) {
+    console.error('[desktop] data migration failed:', error);
+    dialog.showErrorBox(
+      'Kimi Code data migration failed',
+      `Could not move your data from\n${sourceHome}\nto\n${targetHome}.\n\n` +
+        'The app will not start until the migration succeeds. Please free disk ' +
+        'space or check permissions, then start Kimi Code again.',
+    );
+    app.exit(1);
+  }
 }
 
 function openWindow(): void {
