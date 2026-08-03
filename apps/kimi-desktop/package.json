@@ -1,0 +1,27 @@
+{
+  "name": "@moonshot-ai/kimi-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Kimi Code desktop shell — an Electron wrapper around the local web UI and the in-process kap-server.",
+  "type": "module",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:web": "node scripts/copy-web-assets.mjs",
+    "dev": "pnpm build:web && pnpm build && electron .",
+    "start": "pnpm build && electron .",
+    "smoke": "node scripts/smoke.mjs",
+    "typecheck": "tsc --noEmit",
+    "pack:dir": "pnpm build:web && pnpm build && electron-builder --dir"
+  },
+  "dependencies": {
+    "@moonshot-ai/kap-server": "workspace:*"
+  },
+  "devDependencies": {
+    "electron": "43.2.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.1",
+    "typescript": "6.0.2"
+  }
+}

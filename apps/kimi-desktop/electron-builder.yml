@@ -1,0 +1,39 @@
+# electron-builder configuration.
+#
+# Phase-1 minimal: supports `electron-builder --dir` (unpacked app) for local
+# verification. Signing / notarization (macOS), installers, and the dependency
+# layout inside the asar are finalized in the release phase.
+
+appId: com.moonshotai.kimi-code
+productName: Kimi Code
+
+directories:
+  output: dist-app
+
+files:
+  - dist/**
+  - resources/web/**
+  - package.json
+
+# The desktop shell runs the workspace kap-server from node_modules at runtime;
+# never let electron-builder try to rebuild native modules (node-pty etc.) —
+# they are optional deps resolved by the Node runtime, not the app's concern.
+npmRebuild: false
+
+asar: true
+
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+
+win:
+  target:
+    - nsis
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development

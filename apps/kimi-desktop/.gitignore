@@ -1,0 +1,2 @@
+# Staged web UI bundle, copied from apps/kimi-web/dist by scripts/copy-web-assets.mjs.
+resources/web/
