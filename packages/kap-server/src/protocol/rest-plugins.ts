@@ -48,3 +48,35 @@ export const uninstallPluginResponseSchema = z.object({
   removed: z.literal(true),
 });
 export type UninstallPluginResponse = z.infer<typeof uninstallPluginResponseSchema>;
+
+export const setPluginEnabledBodySchema = z.object({
+  enabled: z.boolean(),
+});
+export type SetPluginEnabledBody = z.infer<typeof setPluginEnabledBodySchema>;
+
+export const setPluginEnabledResponseSchema = z.object({
+  enabled: z.literal(true),
+});
+export type SetPluginEnabledResponse = z.infer<typeof setPluginEnabledResponseSchema>;
+
+export const pluginMcpServerParamSchema = z.object({
+  plugin_id: z.string().min(1),
+  mcp_server: z.string().min(1),
+});
+export type PluginMcpServerParam = z.infer<typeof pluginMcpServerParamSchema>;
+
+export const pluginMcpServerInfoSchema = z.object({
+  name: z.string(),
+  enabled: z.boolean(),
+  transport: z.enum(['stdio', 'http', 'sse']),
+  url: z.string().optional(),
+  command: z.string().optional(),
+});
+export type PluginMcpServerInfo = z.infer<typeof pluginMcpServerInfoSchema>;
+
+export const pluginInfoResponseSchema = z.object({
+  plugin: pluginEntrySchema.extend({
+    mcp_servers: z.array(pluginMcpServerInfoSchema),
+  }),
+});
+export type PluginInfoResponse = z.infer<typeof pluginInfoResponseSchema>;

@@ -960,8 +960,30 @@ export function useWorkspaceState(rawState: ExtendedState, deps: UseWorkspaceSta
 
   /** Open a workspace in the main pane: clear the active session when the
    *  workspace is empty so the centred composer is shown; otherwise activate
-   *  the most recent session in that workspace. */
-  function openWorkspace(id: string): void {
+   *  the most recent session in that workspace. When the workspace is
+   *  untrusted, prompt the user to trust it first (declining still opens it —
+   *  the engine keeps skipping project-level MCP configs until trusted). */
+  async function openWorkspace(id: string): Promise<void> {
+    const ws = rawState.workspaces.find((w) => w.id === id);
+    if (ws !== undefined && ws.trusted === false) {
+      try {
+        const ok = await confirm({
+          title: i18n.global.t('workspace.trustTitle'),
+          message: i18n.global.t('workspace.trustMessage', { name: ws.name }),
+          variant: 'danger',
+          action: () => getKimiWebApi().trustWorkspace(id),
+        });
+        if (ok) {
+          const index = rawState.workspaces.findIndex((w) => w.id === id);
+          if (index !== -1) {
+            rawState.workspaces[index] = { ...rawState.workspaces[index]!, trusted: true };
+          }
+        }
+      } catch {
+        // Trust failed (network / server error): still open the workspace in
+        // its untrusted state — the engine enforces the untrusted semantics.
+      }
+    }
     selectWorkspace(id);
     const sessionsInWs = rawState.sessions.filter((s) => workspaceIdForSession(s) === id);
     if (sessionsInWs.length > 0) {

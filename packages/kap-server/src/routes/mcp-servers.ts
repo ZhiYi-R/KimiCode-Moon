@@ -49,6 +49,14 @@ import {
 } from '../services/mcpConfig/globalMcpConfigService';
 
 interface McpConfigRouteHost {
+  get(
+    path: string,
+    options: { preHandler: unknown[]; schema?: Record<string, unknown> } | undefined,
+    handler: (
+      req: { id: string },
+      reply: { send(payload: unknown): unknown },
+    ) => Promise<void> | void,
+  ): unknown;
   post(
     path: string,
     options: { preHandler: unknown[]; schema?: Record<string, unknown> },
@@ -71,6 +79,29 @@ export function registerMcpConfigRoutes(
   app: McpConfigRouteHost,
   mcpConfig: GlobalMcpConfigService,
 ): void {
+  // GET /mcp/config ------------------------------------------------------
+  // The configured (persisted) global list — distinct from GET /mcp/servers
+  // in routes/tools.ts, which serves the live session's connection view.
+  const getConfigRoute = defineRoute(
+    {
+      method: 'GET',
+      path: '/mcp/config',
+      success: { data: listGlobalMcpServersResponseSchema },
+      description: 'List user-global MCP server configs from <home>/mcp.json',
+      tags: ['tools'],
+      operationId: 'getGlobalMcpConfig',
+    },
+    async (req, reply) => {
+      const servers = await mcpConfig.list();
+      reply.send(okEnvelope({ servers: servers.map(toWireServer) }, req.id));
+    },
+  );
+  app.get(
+    getConfigRoute.path,
+    getConfigRoute.options,
+    getConfigRoute.handler as Parameters<McpConfigRouteHost['get']>[2],
+  );
+
   // POST /mcp/servers -----------------------------------------------------
   const addServerRoute = defineRoute(
     {

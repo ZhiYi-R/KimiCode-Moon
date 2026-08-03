@@ -17,6 +17,8 @@ export const workspaceSchema = z.object({
   created_at: isoDateTimeSchema,
   last_opened_at: isoDateTimeSchema,
   session_count: z.number().int().nonnegative(),
+  /** Trust state of the workspace (absent on legacy/v1 responses). */
+  trusted: z.boolean().optional(),
 });
 
 export type Workspace = z.infer<typeof workspaceSchema>;

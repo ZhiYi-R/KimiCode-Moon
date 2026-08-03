@@ -57,6 +57,16 @@ import en_header from './en/header';
 import zh_header from './zh/header';
 import en_sideChat from './en/sideChat';
 import zh_sideChat from './zh/sideChat';
+import en_mcp from './en/mcp';
+import zh_mcp from './zh/mcp';
+import en_plugins from './en/plugins';
+import zh_plugins from './zh/plugins';
+import en_cronSettings from './en/cronSettings';
+import zh_cronSettings from './zh/cronSettings';
+import en_workspaceDirs from './en/workspaceDirs';
+import zh_workspaceDirs from './zh/workspaceDirs';
+import en_goals from './en/goals';
+import zh_goals from './zh/goals';
 
 export const messages = {
   en: {
@@ -89,6 +99,11 @@ export const messages = {
     settings: en_settings,
     header: en_header,
     sideChat: en_sideChat,
+    mcp: en_mcp,
+    plugins: en_plugins,
+    cronSettings: en_cronSettings,
+    workspaceDirs: en_workspaceDirs,
+    goals: en_goals,
   },
   zh: {
     common: zh_common,
@@ -120,6 +135,11 @@ export const messages = {
     settings: zh_settings,
     header: zh_header,
     sideChat: zh_sideChat,
+    mcp: zh_mcp,
+    plugins: zh_plugins,
+    cronSettings: zh_cronSettings,
+    workspaceDirs: zh_workspaceDirs,
+    goals: zh_goals,
   },
 } as const;
 

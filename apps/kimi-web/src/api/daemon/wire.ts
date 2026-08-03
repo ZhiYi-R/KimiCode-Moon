@@ -160,6 +160,8 @@ export interface WireWorkspace {
   name: string;
   last_opened_at?: string;
   session_count: number;
+  /** Trust state; absent when the server could not resolve it. */
+  trusted?: boolean;
 }
 
 export interface WireFsBrowseEntry {

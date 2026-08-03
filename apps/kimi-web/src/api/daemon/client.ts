@@ -33,6 +33,14 @@ import type {
   PromptSubmission,
   PromptSubmitResult,
   QuestionResponse,
+  WireBeginMcpAuthResult,
+  WireCronTask,
+  WireGlobalMcpServer,
+  WireMcpTestResult,
+  WirePluginEntry,
+  WirePluginInfo,
+  WireUpcomingGoal,
+  WireWorkspaceDirsResult,
 } from '../types';
 import { createAgentProjector } from './agentEventProjector';
 import { DaemonHttpClient } from './http';
@@ -1545,6 +1553,207 @@ export class DaemonKimiWebApi implements KimiWebApi {
         socket.close();
       },
     };
+  }
+
+  // -------------------------------------------------------------------------
+  // MCP server management (user-global config) — REAL endpoints (phase 3)
+  // -------------------------------------------------------------------------
+
+  async getMcpConfig(): Promise<WireGlobalMcpServer[]> {
+    const data = await this.http.get<{ servers: WireGlobalMcpServer[] }>('/mcp/config');
+    return data.servers;
+  }
+
+  async addMcpServer(
+    name: string,
+    config: Record<string, unknown>,
+  ): Promise<WireGlobalMcpServer[]> {
+    const data = await this.http.post<{ servers: WireGlobalMcpServer[] }>('/mcp/servers', {
+      name,
+      config,
+    });
+    return data.servers;
+  }
+
+  async removeMcpServer(name: string): Promise<WireGlobalMcpServer[]> {
+    const data = await this.http.delete<{ servers: WireGlobalMcpServer[] }>(
+      `/mcp/servers/${encodeURIComponent(name)}`,
+    );
+    return data.servers;
+  }
+
+  async testMcpServer(name: string): Promise<WireMcpTestResult> {
+    return this.http.post<WireMcpTestResult>(`/mcp/servers/${encodeURIComponent(name)}/test`);
+  }
+
+  async beginMcpServerAuth(name: string): Promise<WireBeginMcpAuthResult> {
+    return this.http.post<WireBeginMcpAuthResult>(
+      `/mcp/servers/${encodeURIComponent(name)}/auth`,
+    );
+  }
+
+  async completeMcpServerAuth(name: string, flowId: string): Promise<void> {
+    await this.http.post<{ authorized: true }>(
+      `/mcp/servers/${encodeURIComponent(name)}/auth/complete`,
+      { flow_id: flowId },
+    );
+  }
+
+  async resetMcpServerAuth(name: string): Promise<void> {
+    await this.http.delete<{ reset: true }>(`/mcp/servers/${encodeURIComponent(name)}/auth`);
+  }
+
+  // -------------------------------------------------------------------------
+  // Cron tasks (session-scoped, main agent) — REAL endpoints (phase 3)
+  // -------------------------------------------------------------------------
+
+  async listCronTasks(sessionId: string): Promise<WireCronTask[]> {
+    const data = await this.http.get<{ tasks: WireCronTask[] }>(
+      `/sessions/${encodeURIComponent(sessionId)}/cron`,
+    );
+    return data.tasks;
+  }
+
+  async createCronTask(
+    sessionId: string,
+    input: { cron: string; prompt: string; recurring?: boolean },
+  ): Promise<WireCronTask> {
+    const body: Record<string, unknown> = { cron: input.cron, prompt: input.prompt };
+    if (input.recurring !== undefined) body['recurring'] = input.recurring;
+    const data = await this.http.post<{ task: WireCronTask }>(
+      `/sessions/${encodeURIComponent(sessionId)}/cron`,
+      body,
+    );
+    return data.task;
+  }
+
+  async deleteCronTask(sessionId: string, taskId: string): Promise<void> {
+    await this.http.delete<{ removed: string[] }>(
+      `/sessions/${encodeURIComponent(sessionId)}/cron/${encodeURIComponent(taskId)}`,
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Plugins (marketplace + installed) — REAL endpoints (phase 3)
+  // -------------------------------------------------------------------------
+
+  async listPlugins(): Promise<WirePluginEntry[]> {
+    const data = await this.http.get<{ plugins: WirePluginEntry[] }>('/plugins');
+    return data.plugins;
+  }
+
+  async installPlugin(id: string): Promise<void> {
+    await this.http.post<{ plugin: WirePluginEntry }>(`/plugins/${encodeURIComponent(id)}/install`);
+  }
+
+  async uninstallPlugin(id: string): Promise<void> {
+    await this.http.post<{ removed: true }>(`/plugins/${encodeURIComponent(id)}/uninstall`);
+  }
+
+  // -------------------------------------------------------------------------
+  // Workspace additional directories — REAL endpoints (phase 3)
+  // -------------------------------------------------------------------------
+
+  async listWorkspaceDirs(workspaceId: string): Promise<string[]> {
+    const data = await this.http.get<{ additional_dirs: string[] }>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/dirs`,
+    );
+    return data.additional_dirs;
+  }
+
+  async addWorkspaceDir(workspaceId: string, dir: string): Promise<WireWorkspaceDirsResult> {
+    return this.http.post<WireWorkspaceDirsResult>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/dirs`,
+      { dir },
+    );
+  }
+
+  async removeWorkspaceDir(workspaceId: string, dir: string): Promise<WireWorkspaceDirsResult> {
+    return this.http.delete<WireWorkspaceDirsResult>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/dirs?dir=${encodeURIComponent(dir)}`,
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Workspace trust — REAL endpoints
+  // -------------------------------------------------------------------------
+
+  async getWorkspaceTrust(workspaceId: string): Promise<{ trusted: boolean }> {
+    return this.http.get<{ trusted: boolean }>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/trust`,
+    );
+  }
+
+  async trustWorkspace(workspaceId: string): Promise<{ trusted: true }> {
+    return this.http.post<{ trusted: true }>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/trust`,
+    );
+  }
+
+  async untrustWorkspace(workspaceId: string): Promise<{ trusted: false }> {
+    return this.http.post<{ trusted: false }>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/untrust`,
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Session goal queue (upcoming goals) — REAL endpoints
+  // -------------------------------------------------------------------------
+
+  async listGoalQueue(sessionId: string): Promise<WireUpcomingGoal[]> {
+    const data = await this.http.get<{ goals: WireUpcomingGoal[] }>(
+      `/sessions/${encodeURIComponent(sessionId)}/goals`,
+    );
+    return data.goals;
+  }
+
+  async appendGoal(sessionId: string, objective: string): Promise<WireUpcomingGoal> {
+    const data = await this.http.post<{ goal: WireUpcomingGoal }>(
+      `/sessions/${encodeURIComponent(sessionId)}/goals`,
+      { objective },
+    );
+    return data.goal;
+  }
+
+  async removeGoal(sessionId: string, goalId: string): Promise<void> {
+    await this.http.delete<{ removed: true }>(
+      `/sessions/${encodeURIComponent(sessionId)}/goals/${encodeURIComponent(goalId)}`,
+    );
+  }
+
+  async moveGoal(
+    sessionId: string,
+    goalId: string,
+    direction: 'up' | 'down',
+  ): Promise<void> {
+    await this.http.post<{ moved: true }>(
+      `/sessions/${encodeURIComponent(sessionId)}/goals/${encodeURIComponent(goalId)}/move`,
+      { direction },
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Plugin enabled state — REAL endpoints
+  // -------------------------------------------------------------------------
+
+  async setPluginEnabled(id: string, enabled: boolean): Promise<void> {
+    await this.http.post<{ enabled: true }>(`/plugins/${encodeURIComponent(id)}/enabled`, {
+      enabled,
+    });
+  }
+
+  async setPluginMcpServerEnabled(id: string, server: string, enabled: boolean): Promise<void> {
+    await this.http.post<{ enabled: true }>(
+      `/plugins/${encodeURIComponent(id)}/mcp-servers/${encodeURIComponent(server)}/enabled`,
+      { enabled },
+    );
+  }
+
+  async getPluginInfo(id: string): Promise<WirePluginInfo> {
+    const data = await this.http.get<{ plugin: WirePluginInfo }>(
+      `/plugins/${encodeURIComponent(id)}`,
+    );
+    return data.plugin;
   }
 }
 

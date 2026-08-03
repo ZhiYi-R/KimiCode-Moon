@@ -52,4 +52,7 @@ export default {
   awaitingPermissionTitle: '有操作等待你授权',
   aborted: '已中断',
   abortedTitle: '此会话在完成前被中断',
+  // Workspace trust
+  trustTitle: '信任此工作区？',
+  trustMessage: '信任 "{name}" 后将允许加载项目级 MCP 服务器及其它工作区配置。请只信任你认识的工作区。',
 };

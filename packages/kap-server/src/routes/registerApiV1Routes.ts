@@ -49,6 +49,7 @@ import { registerWorkspacesRoutes } from './workspaces';
 import { registerMcpConfigRoutes } from './mcp-servers';
 import { registerCronRoutes } from './cron';
 import { registerPluginsRoutes } from './plugins';
+import { registerGoalsRoutes } from './goals';
 import type { GlobalMcpConfigService } from '../services/mcpConfig/globalMcpConfigService';
 
 interface ApiV1AppHost {
@@ -184,6 +185,7 @@ export async function registerApiV1Routes(
         opts.mcpConfig,
       );
       registerCronRoutes(apiV1 as unknown as Parameters<typeof registerCronRoutes>[0], core);
+      registerGoalsRoutes(apiV1 as unknown as Parameters<typeof registerGoalsRoutes>[0], core);
       registerPluginsRoutes(apiV1 as unknown as Parameters<typeof registerPluginsRoutes>[0], core);
       registerWorkspaceDirsRoutes(
         apiV1 as unknown as Parameters<typeof registerWorkspaceDirsRoutes>[0],

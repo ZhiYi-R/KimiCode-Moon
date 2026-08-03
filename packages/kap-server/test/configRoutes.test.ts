@@ -118,6 +118,19 @@ describe('server-v2 phase-3 config routes', () => {
   // ---------------------------------------------------------------------
 
   describe('/mcp/servers management', () => {
+    it('lists the persisted global config via GET /mcp/config', async () => {
+      await post('/api/v1/mcp/servers', {
+        name: 'listed',
+        config: { transport: 'stdio', command: 'npx' },
+      });
+      const { status, body } = await get<{ servers: unknown[] }>('/api/v1/mcp/config');
+      expect(status).toBe(200);
+      expect(body.code).toBe(0);
+      expect(body.data.servers).toEqual([
+        expect.objectContaining({ name: 'listed', config: expect.objectContaining({ transport: 'stdio' }) }),
+      ]);
+    });
+
     it('adds a server to <home>/mcp.json and lists it back', async () => {
       const { status, body } = await post<{ servers: unknown[] }>('/api/v1/mcp/servers', {
         name: 'stdio-test',
@@ -347,6 +360,140 @@ describe('server-v2 phase-3 config routes', () => {
         dir: join(home as string, 'does-not-exist'),
       });
       expect(body.code).toBe(40001);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Workspace trust
+  // ---------------------------------------------------------------------
+
+  describe('workspace trust', () => {
+    it('lists workspaces with their trust state', async () => {
+      await post('/api/v1/workspaces', { root: home as string, name: 'proj' });
+      const { body } = await get<{ items: Array<{ trusted?: boolean }> }>('/api/v1/workspaces');
+      expect(body.code).toBe(0);
+      const ws = body.data.items.find((w) => 'trusted' in w);
+      expect(ws?.trusted).toBe(false);
+    });
+
+    it('reads, sets, and clears trust', async () => {
+      const { body: created } = await post<{ id: string }>('/api/v1/workspaces', {
+        root: home as string,
+        name: 'proj',
+      });
+      const id = created.data.id;
+
+      const before = await get<{ trusted: boolean }>(`/api/v1/workspaces/${id}/trust`);
+      expect(before.body.data.trusted).toBe(false);
+
+      const trusted = await post<{ trusted: boolean }>(`/api/v1/workspaces/${id}/trust`);
+      expect(trusted.body.data.trusted).toBe(true);
+
+      const after = await get<{ trusted: boolean }>(`/api/v1/workspaces/${id}/trust`);
+      expect(after.body.data.trusted).toBe(true);
+
+      const untrusted = await post<{ trusted: boolean }>(`/api/v1/workspaces/${id}/untrust`);
+      expect(untrusted.body.data.trusted).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Session goal queue
+  // ---------------------------------------------------------------------
+
+  describe('/sessions/{id}/goals', () => {
+    async function createSession(): Promise<string> {
+      const { body } = await post<{ id: string }>('/api/v1/sessions', {
+        metadata: { cwd: home as string },
+      });
+      expect(body.code).toBe(0);
+      return body.data.id;
+    }
+
+    it('lists, appends, moves, and removes queued goals', async () => {
+      const sessionId = await createSession();
+
+      const empty = await get<{ goals: unknown[] }>(`/api/v1/sessions/${sessionId}/goals`);
+      expect(empty.body.code).toBe(0);
+      expect(empty.body.data.goals).toEqual([]);
+
+      const first = await post<{ goal: { id: string; objective: string } }>(
+        `/api/v1/sessions/${sessionId}/goals`,
+        { objective: 'first goal' },
+      );
+      expect(first.body.code).toBe(0);
+      expect(first.body.data.goal.objective).toBe('first goal');
+
+      const second = await post<{ goal: { id: string } }>(
+        `/api/v1/sessions/${sessionId}/goals`,
+        { objective: 'second goal' },
+      );
+      expect(second.body.code).toBe(0);
+
+      const listed = await get<{ goals: Array<{ id: string; objective: string }> }>(
+        `/api/v1/sessions/${sessionId}/goals`,
+      );
+      expect(listed.body.data.goals.map((g) => g.objective)).toEqual([
+        'first goal',
+        'second goal',
+      ]);
+
+      const moved = await post<{ moved: true }>(
+        `/api/v1/sessions/${sessionId}/goals/${second.body.data.goal.id}/move`,
+        { direction: 'up' },
+      );
+      expect(moved.body.code).toBe(0);
+      const reordered = await get<{ goals: Array<{ objective: string }> }>(
+        `/api/v1/sessions/${sessionId}/goals`,
+      );
+      expect(reordered.body.data.goals.map((g) => g.objective)).toEqual([
+        'second goal',
+        'first goal',
+      ]);
+
+      const removed = await del<{ removed: true }>(
+        `/api/v1/sessions/${sessionId}/goals/${first.body.data.goal.id}`,
+      );
+      expect(removed.body.code).toBe(0);
+      const after = await get<{ goals: unknown[] }>(`/api/v1/sessions/${sessionId}/goals`);
+      expect(after.body.data.goals).toHaveLength(1);
+    });
+
+    it('rejects an unknown goal id with 40914', async () => {
+      const sessionId = await createSession();
+      const { body } = await del<null>(`/api/v1/sessions/${sessionId}/goals/nope`);
+      expect(body.code).toBe(40914);
+    });
+
+    it('rejects an empty objective with 40001', async () => {
+      const sessionId = await createSession();
+      const { body } = await post<null>(`/api/v1/sessions/${sessionId}/goals`, {
+        objective: '   ',
+      });
+      expect(body.code).toBe(40001);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Plugin enabled state
+  // ---------------------------------------------------------------------
+
+  describe('/plugins enabled state', () => {
+    it('rejects toggling an uninstalled plugin with 40418', async () => {
+      const { body } = await post<null>('/api/v1/plugins/ghost/enabled', { enabled: false });
+      expect(body.code).toBe(40418);
+    });
+
+    it('rejects toggling an uninstalled plugin MCP server with 40418', async () => {
+      const { body } = await post<null>('/api/v1/plugins/ghost/mcp-servers/db/enabled', {
+        enabled: false,
+      });
+      expect(body.code).toBe(40418);
+    });
+
+    it('rejects info for an uninstalled plugin with 40418', async () => {
+      const { body } = await get<null>('/api/v1/plugins/ghost');
+      expect(body.code).toBe(40418);
     });
   });
 });

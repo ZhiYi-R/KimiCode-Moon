@@ -330,6 +330,18 @@ async function resolveTrust(
 
 async function toWireWorkspace(core: Scope, ws: Workspace): Promise<WorkspaceWire> {
   const sessionCount = await core.accessor.get(IWorkspaceSessions).count(ws.id);
+  // Trust state drives the GUI's trust prompt when a workspace is opened.
+  // Best-effort: a workspace that cannot be materialized right now simply
+  // omits the field (the GUI then treats it as unknown and re-checks later).
+  let trusted: boolean | undefined;
+  try {
+    const handle = await core
+      .accessor.get(IWorkspaceLifecycleService)
+      .handlerFor({ workspaceId: ws.id, root: ws.root });
+    trusted = handle.accessor.get(IWorkspaceTrust).isTrusted();
+  } catch {
+    trusted = undefined;
+  }
   return {
     id: ws.id,
     root: ws.root,
@@ -337,6 +349,7 @@ async function toWireWorkspace(core: Scope, ws: Workspace): Promise<WorkspaceWir
     created_at: new Date(ws.createdAt).toISOString(),
     last_opened_at: new Date(ws.lastOpenedAt).toISOString(),
     session_count: sessionCount,
+    ...(trusted !== undefined ? { trusted } : {}),
   };
 }
 

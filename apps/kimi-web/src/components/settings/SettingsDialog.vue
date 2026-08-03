@@ -19,6 +19,11 @@ import Button from '../ui/Button.vue';
 import SegmentedControl from '../ui/SegmentedControl.vue';
 import Select from '../ui/Select.vue';
 import Tooltip from '../ui/Tooltip.vue';
+import McpSettings from './McpSettings.vue';
+import PluginSettings from './PluginSettings.vue';
+import CronSettings from './CronSettings.vue';
+import WorkspaceDirsSettings from './WorkspaceDirsSettings.vue';
+import GoalsSettings from './GoalsSettings.vue';
 
 const { t } = useI18n();
 
@@ -69,7 +74,17 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-type SettingsTab = 'general' | 'agent' | 'account' | 'advanced' | 'archived';
+type SettingsTab =
+  | 'general'
+  | 'agent'
+  | 'account'
+  | 'advanced'
+  | 'archived'
+  | 'mcp'
+  | 'plugins'
+  | 'cron'
+  | 'workspaceDirs'
+  | 'goals';
 
 const activeTab = ref<SettingsTab>('general');
 
@@ -79,6 +94,11 @@ const tabs: { id: SettingsTab; labelKey: string }[] = [
   { id: 'account', labelKey: 'settings.tabs.account' },
   { id: 'advanced', labelKey: 'settings.tabs.advanced' },
   { id: 'archived', labelKey: 'settings.tabs.archived' },
+  { id: 'mcp', labelKey: 'settings.tabs.mcp' },
+  { id: 'plugins', labelKey: 'settings.tabs.plugins' },
+  { id: 'cron', labelKey: 'settings.tabs.cron' },
+  { id: 'workspaceDirs', labelKey: 'settings.tabs.workspaceDirs' },
+  { id: 'goals', labelKey: 'settings.tabs.goals' },
 ];
 
 const daemonEndpoint = serverEndpointLabel();
@@ -656,6 +676,51 @@ function archiveTime(iso: string): string {
               {{ archivedItems.length === 0 ? t('settings.archivedEmpty') : t('settings.archivedNoMatch') }}
             </div>
           </template>
+        </section>
+
+        <!-- MCP servers -->
+        <section v-show="activeTab === 'mcp'" class="panel">
+          <div class="panel-head">
+            <div class="panel-kicker">MCP</div>
+            <h4 class="panel-title">{{ t('mcp.title') }}</h4>
+          </div>
+          <McpSettings />
+        </section>
+
+        <!-- Plugins -->
+        <section v-show="activeTab === 'plugins'" class="panel">
+          <div class="panel-head">
+            <div class="panel-kicker">Plugins</div>
+            <h4 class="panel-title">{{ t('plugins.title') }}</h4>
+          </div>
+          <PluginSettings />
+        </section>
+
+        <!-- Cron tasks (active session) -->
+        <section v-show="activeTab === 'cron'" class="panel">
+          <div class="panel-head">
+            <div class="panel-kicker">Cron</div>
+            <h4 class="panel-title">{{ t('cronSettings.title') }}</h4>
+          </div>
+          <CronSettings :session-id="client.activeSessionId.value" />
+        </section>
+
+        <!-- Workspace additional directories -->
+        <section v-show="activeTab === 'workspaceDirs'" class="panel">
+          <div class="panel-head">
+            <div class="panel-kicker">Workspace</div>
+            <h4 class="panel-title">{{ t('workspaceDirs.title') }}</h4>
+          </div>
+          <WorkspaceDirsSettings :workspace-id="client.activeWorkspaceId.value" />
+        </section>
+
+        <!-- Goal queue (active session) -->
+        <section v-show="activeTab === 'goals'" class="panel">
+          <div class="panel-head">
+            <div class="panel-kicker">Goals</div>
+            <h4 class="panel-title">{{ t('goals.title') }}</h4>
+          </div>
+          <GoalsSettings :session-id="client.activeSessionId.value" />
         </section>
 
       </div>

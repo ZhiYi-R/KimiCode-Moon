@@ -22,8 +22,14 @@ import {
   installPluginResponseSchema,
   listPluginsResponseSchema,
   pluginIdParamSchema,
+  pluginInfoResponseSchema,
+  pluginMcpServerParamSchema,
+  setPluginEnabledBodySchema,
+  setPluginEnabledResponseSchema,
   uninstallPluginResponseSchema,
   type PluginEntry,
+  type PluginMcpServerInfo,
+  type SetPluginEnabledBody,
 } from '../protocol/rest-plugins';
 import {
   loadPluginMarketplace,
@@ -172,6 +178,128 @@ export function registerPluginsRoutes(app: PluginRouteHost, core: Scope): void {
     uninstallPluginRoute.options,
     uninstallPluginRoute.handler as Parameters<PluginRouteHost['post']>[2],
   );
+
+  // POST /plugins/{plugin_id}/enabled ------------------------------------
+  const setPluginEnabledRoute = defineRoute(
+    {
+      method: 'POST',
+      path: '/plugins/{plugin_id}/enabled',
+      params: pluginIdParamSchema,
+      body: setPluginEnabledBodySchema,
+      success: { data: setPluginEnabledResponseSchema },
+      errors: {
+        [ErrorCode.PLUGIN_NOT_FOUND]: {},
+      },
+      description: 'Enable or disable an installed plugin, then reload plugins',
+      tags: ['plugins'],
+      operationId: 'setPluginEnabled',
+    },
+    async (req, reply) => {
+      const { plugin_id } = req.params as { plugin_id: string };
+      const body = req.body as SetPluginEnabledBody;
+      if (!(await isInstalled(pluginService(), plugin_id))) {
+        reply.send(pluginNotFound(plugin_id, req.id));
+        return;
+      }
+      try {
+        await pluginService().setPluginEnabled({ id: plugin_id, enabled: body.enabled });
+        await pluginService().reloadPlugins();
+        reply.send(okEnvelope({ enabled: true }, req.id));
+      } catch (error) {
+        sendMappedError(reply, req.id, error);
+      }
+    },
+  );
+  app.post(
+    setPluginEnabledRoute.path,
+    setPluginEnabledRoute.options,
+    setPluginEnabledRoute.handler as Parameters<PluginRouteHost['post']>[2],
+  );
+
+  // POST /plugins/{plugin_id}/mcp-servers/{mcp_server}/enabled ------------
+  const setPluginMcpEnabledRoute = defineRoute(
+    {
+      method: 'POST',
+      path: '/plugins/{plugin_id}/mcp-servers/{mcp_server}/enabled',
+      params: pluginMcpServerParamSchema,
+      body: setPluginEnabledBodySchema,
+      success: { data: setPluginEnabledResponseSchema },
+      errors: {
+        [ErrorCode.PLUGIN_NOT_FOUND]: {},
+        [ErrorCode.VALIDATION_FAILED]: {},
+      },
+      description: 'Enable or disable one MCP server of an installed plugin, then reload plugins',
+      tags: ['plugins'],
+      operationId: 'setPluginMcpServerEnabled',
+    },
+    async (req, reply) => {
+      const { plugin_id, mcp_server } = req.params as {
+        plugin_id: string;
+        mcp_server: string;
+      };
+      const body = req.body as SetPluginEnabledBody;
+      if (!(await isInstalled(pluginService(), plugin_id))) {
+        reply.send(pluginNotFound(plugin_id, req.id));
+        return;
+      }
+      try {
+        await pluginService().setPluginMcpServerEnabled({
+          id: plugin_id,
+          server: mcp_server,
+          enabled: body.enabled,
+        });
+        await pluginService().reloadPlugins();
+        reply.send(okEnvelope({ enabled: true }, req.id));
+      } catch (error) {
+        sendMappedError(reply, req.id, error);
+      }
+    },
+  );
+  app.post(
+    setPluginMcpEnabledRoute.path,
+    setPluginMcpEnabledRoute.options,
+    setPluginMcpEnabledRoute.handler as Parameters<PluginRouteHost['post']>[2],
+  );
+
+  // GET /plugins/{plugin_id} ---------------------------------------------
+  const getPluginInfoRoute = defineRoute(
+    {
+      method: 'GET',
+      path: '/plugins/{plugin_id}',
+      params: pluginIdParamSchema,
+      success: { data: pluginInfoResponseSchema },
+      errors: {
+        [ErrorCode.PLUGIN_NOT_FOUND]: {},
+      },
+      description: 'Get an installed plugin\'s detail (including per-MCP-server enabled state)',
+      tags: ['plugins'],
+      operationId: 'getPluginInfo',
+    },
+    async (req, reply) => {
+      const { plugin_id } = req.params as { plugin_id: string };
+      if (!(await isInstalled(pluginService(), plugin_id))) {
+        reply.send(pluginNotFound(plugin_id, req.id));
+        return;
+      }
+      try {
+        const info = await pluginService().getPluginInfo({ id: plugin_id });
+        reply.send(okEnvelope({ plugin: projectPluginInfo(info) }, req.id));
+      } catch (error) {
+        sendMappedError(reply, req.id, error);
+      }
+    },
+  );
+  app.get(
+    getPluginInfoRoute.path,
+    getPluginInfoRoute.options,
+    getPluginInfoRoute.handler as Parameters<PluginRouteHost['get']>[2],
+  );
+}
+
+/** True when the plugin is installed (its id appears in the installed list). */
+async function isInstalled(service: IPluginService, pluginId: string): Promise<boolean> {
+  const installed = await service.listPlugins();
+  return installed.some((plugin) => plugin.id === pluginId);
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +334,43 @@ function pluginNotFound(pluginId: string, requestId: string): unknown {
     `Plugin "${pluginId}" was not found in the marketplace or is not installed`,
     requestId,
   );
+}
+
+/** Project `PluginInfo` onto the wire `{plugin}` shape (pluginEntry + mcp servers). */
+function projectPluginInfo(info: {
+  id: string;
+  displayName: string;
+  version?: string;
+  enabled: boolean;
+  mcpServers: readonly {
+    name: string;
+    enabled: boolean;
+    transport: 'stdio' | 'http' | 'sse';
+    url?: string;
+    command?: string;
+  }[];
+}): PluginEntry & { mcp_servers: PluginMcpServerInfo[] } {
+  const entry: PluginEntry = {
+    id: info.id,
+    display_name: info.displayName,
+    source: '',
+    installed: true,
+  };
+  if (info.version !== undefined) entry.installed_version = info.version;
+  entry.enabled = info.enabled;
+  return {
+    ...entry,
+    mcp_servers: info.mcpServers.map((server) => {
+      const wire: PluginMcpServerInfo = {
+        name: server.name,
+        enabled: server.enabled,
+        transport: server.transport,
+      };
+      if (server.url !== undefined) wire.url = server.url;
+      if (server.command !== undefined) wire.command = server.command;
+      return wire;
+    }),
+  };
 }
 
 function sendMappedError(

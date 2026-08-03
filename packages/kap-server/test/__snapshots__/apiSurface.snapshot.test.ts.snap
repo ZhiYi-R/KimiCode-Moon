@@ -46,6 +46,10 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     ],
     [
       "DELETE",
+      "/api/v1/sessions/{session_id}/goals/{goal_id}",
+    ],
+    [
+      "DELETE",
       "/api/v1/workspaces/{workspace_id}",
     ],
     [
@@ -122,6 +126,10 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     ],
     [
       "GET",
+      "/api/v1/mcp/config",
+    ],
+    [
+      "GET",
       "/api/v1/mcp/servers",
     ],
     [
@@ -147,6 +155,10 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     [
       "GET",
       "/api/v1/plugins",
+    ],
+    [
+      "GET",
+      "/api/v1/plugins/{plugin_id}",
     ],
     [
       "GET",
@@ -183,6 +195,10 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     [
       "GET",
       "/api/v1/sessions/{session_id}/goal",
+    ],
+    [
+      "GET",
+      "/api/v1/sessions/{session_id}/goals",
     ],
     [
       "GET",
@@ -362,7 +378,15 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     ],
     [
       "POST",
+      "/api/v1/plugins/{plugin_id}/enabled",
+    ],
+    [
+      "POST",
       "/api/v1/plugins/{plugin_id}/install",
+    ],
+    [
+      "POST",
+      "/api/v1/plugins/{plugin_id}/mcp-servers/{mcp_server}/enabled",
     ],
     [
       "POST",
@@ -411,6 +435,14 @@ exports[`API surface snapshot > matches the documented v2 route table and meta e
     [
       "POST",
       "/api/v1/sessions/{session_id}/export",
+    ],
+    [
+      "POST",
+      "/api/v1/sessions/{session_id}/goals",
+    ],
+    [
+      "POST",
+      "/api/v1/sessions/{session_id}/goals/{goal_id}/move",
     ],
     [
       "POST",

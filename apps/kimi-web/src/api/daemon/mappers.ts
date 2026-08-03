@@ -119,6 +119,7 @@ export function toAppWorkspace(wire: WireWorkspace): AppWorkspace {
     name: wire.name,
     lastOpenedAt: wire.last_opened_at,
     sessionCount: wire.session_count,
+    ...(wire.trusted !== undefined ? { trusted: wire.trusted } : {}),
   };
 }
 

@@ -124,6 +124,8 @@ export interface AppWorkspace {
   lastOpenedAt?: string;
   /** Number of sessions belonging to this workspace. */
   sessionCount: number;
+  /** Trust state of the workspace (undefined = unknown / not resolved). */
+  trusted?: boolean;
 }
 
 /** One directory entry from the daemon folder browser (fs:browse). */
@@ -787,6 +789,43 @@ export interface KimiWebApi {
   getConfig(): Promise<AppConfig>;
   setConfig(patch: Partial<AppConfig>): Promise<AppConfig>;
 
+  // Phase-3 config surface — REAL endpoints
+  getMcpConfig(): Promise<WireGlobalMcpServer[]>;
+  addMcpServer(name: string, config: Record<string, unknown>): Promise<WireGlobalMcpServer[]>;
+  removeMcpServer(name: string): Promise<WireGlobalMcpServer[]>;
+  testMcpServer(name: string): Promise<WireMcpTestResult>;
+  beginMcpServerAuth(name: string): Promise<WireBeginMcpAuthResult>;
+  completeMcpServerAuth(name: string, flowId: string): Promise<void>;
+  resetMcpServerAuth(name: string): Promise<void>;
+  listCronTasks(sessionId: string): Promise<WireCronTask[]>;
+  createCronTask(
+    sessionId: string,
+    input: { cron: string; prompt: string; recurring?: boolean },
+  ): Promise<WireCronTask>;
+  deleteCronTask(sessionId: string, taskId: string): Promise<void>;
+  listPlugins(): Promise<WirePluginEntry[]>;
+  installPlugin(id: string): Promise<void>;
+  uninstallPlugin(id: string): Promise<void>;
+  listWorkspaceDirs(workspaceId: string): Promise<string[]>;
+  addWorkspaceDir(workspaceId: string, dir: string): Promise<WireWorkspaceDirsResult>;
+  removeWorkspaceDir(workspaceId: string, dir: string): Promise<WireWorkspaceDirsResult>;
+
+  // Workspace trust — REAL endpoints
+  getWorkspaceTrust(workspaceId: string): Promise<{ trusted: boolean }>;
+  trustWorkspace(workspaceId: string): Promise<{ trusted: true }>;
+  untrustWorkspace(workspaceId: string): Promise<{ trusted: false }>;
+
+  // Session goal queue — REAL endpoints
+  listGoalQueue(sessionId: string): Promise<WireUpcomingGoal[]>;
+  appendGoal(sessionId: string, objective: string): Promise<WireUpcomingGoal>;
+  removeGoal(sessionId: string, goalId: string): Promise<void>;
+  moveGoal(sessionId: string, goalId: string, direction: 'up' | 'down'): Promise<void>;
+
+  // Plugin enabled state — REAL endpoints
+  setPluginEnabled(id: string, enabled: boolean): Promise<void>;
+  setPluginMcpServerEnabled(id: string, server: string, enabled: boolean): Promise<void>;
+  getPluginInfo(id: string): Promise<WirePluginInfo>;
+
   // Auth — REAL endpoints
   getAuth(): Promise<{
     ready: boolean;
@@ -802,6 +841,89 @@ export interface KimiWebApi {
   } | null>;
   cancelOAuthLogin(): Promise<{ cancelled: boolean; status: string }>;
   logout(): Promise<{ loggedOut: boolean }>;
+}
+
+// ---------------------------------------------------------------------------
+// Phase-3 config surface — wire shapes (thin pass-through, no app mapping).
+// Served by /mcp/config + /mcp/servers mutations, /sessions/{id}/cron,
+// /plugins, and /workspaces/{id}/dirs.
+// ---------------------------------------------------------------------------
+
+/** `{name, config}` entry of `<home>/mcp.json`. */
+export interface WireGlobalMcpServer {
+  name: string;
+  config: {
+    transport: 'stdio' | 'http' | 'sse';
+    command?: string;
+    args?: string[];
+    env?: Record<string, string>;
+    cwd?: string;
+    url?: string;
+    headers?: Record<string, string>;
+    auth?: 'oauth';
+    bearerTokenEnvVar?: string;
+    enabled?: boolean;
+    [key: string]: unknown;
+  };
+}
+
+export interface WireMcpTestResult {
+  success: boolean;
+  output: string;
+}
+
+export type WireBeginMcpAuthResult =
+  | { status: 'authorization-required'; flow_id: string; authorization_url: string }
+  | { status: 'already-authorized' };
+
+export interface WireCronTask {
+  id: string;
+  cron: string;
+  prompt: string;
+  recurring?: boolean;
+  created_at: number;
+  last_fired_at?: number;
+  next_fire_at: number | null;
+}
+
+export interface WirePluginEntry {
+  id: string;
+  display_name: string;
+  source: string;
+  tier?: string;
+  version?: string;
+  description?: string;
+  homepage?: string;
+  keywords?: string[];
+  installed: boolean;
+  installed_version?: string;
+  enabled?: boolean;
+}
+
+export interface WireWorkspaceDirsResult {
+  additional_dirs: string[];
+  project_root?: string;
+  config_path?: string;
+  persisted?: boolean;
+}
+
+/** An entry of the session's upcoming-goals queue (upcoming-goals.json). */
+export interface WireUpcomingGoal {
+  id: string;
+  objective: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** `PluginInfo` projection: pluginEntry fields + per-MCP-server state. */
+export interface WirePluginInfo extends WirePluginEntry {
+  mcp_servers: Array<{
+    name: string;
+    enabled: boolean;
+    transport: 'stdio' | 'http' | 'sse';
+    url?: string;
+    command?: string;
+  }>;
 }
 
 /** Result of `startOAuthLogin()`, mirroring the wire discriminated union. */

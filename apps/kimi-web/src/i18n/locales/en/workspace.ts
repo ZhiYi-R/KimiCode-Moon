@@ -52,4 +52,7 @@ export default {
   awaitingPermissionTitle: 'An action is waiting for your approval',
   aborted: 'Stopped',
   abortedTitle: 'This session was interrupted before finishing',
+  // Workspace trust
+  trustTitle: 'Trust this workspace?',
+  trustMessage: 'Trusting "{name}" lets it load project-level MCP servers and other workspace configuration. Only trust workspaces you recognize.',
 } as const;
