@@ -727,14 +727,13 @@ export function registerModelCatalogRoutes(app: ModelCatalogRouteHost, core: Sco
       params: providerIdParamSchema,
       errors: {
         [ErrorCode.VALIDATION_FAILED]: {},
-        [ErrorCode.PROVIDER_OAUTH_MANAGED]: {},
         [ErrorCode.PROVIDER_NOT_FOUND]: {},
       },
       rawResponse: {
         204: { description: 'Provider deleted.' },
       },
       description:
-        'Delete a provider and all of its model aliases (204, no body). The global default_provider/default_model pointers are left untouched — they are the user\'s settings, not this endpoint\'s to garbage-collect. OAuth-managed providers are rejected: log out via /oauth/logout instead.',
+        'Delete a provider and all of its model aliases (204, no body). The global default_provider/default_model pointers are left untouched — they are the user\'s settings, not this endpoint\'s to garbage-collect. OAuth-managed providers are logged out (credentials cleared) and then removed, so DELETE means "remove this provider" regardless of how it was added.',
       tags: ['providers'],
       operationId: 'deleteProvider',
     },
@@ -755,14 +754,14 @@ export function registerModelCatalogRoutes(app: ModelCatalogRouteHost, core: Sco
           return;
         }
         if (target.oauth !== undefined) {
-          reply.send(
-            errEnvelope(
-              ErrorCode.PROVIDER_OAUTH_MANAGED,
-              `provider ${provider_id} is managed by OAuth login; use POST /oauth/logout instead`,
-              req.id,
-            ),
-          );
-          return;
+          // OAuth-managed provider: clear the stored credentials first. The
+          // logout is best-effort — an already-logged-out or unknown provider
+          // must not block the config removal.
+          try {
+            await (await loadOAuth(core)).logout(provider_id);
+          } catch {
+            // ignore: the config removal below is the actual delete
+          }
         }
 
         const models = config.inspect<ModelsSection>(MODELS_SECTION).userValue ?? {};

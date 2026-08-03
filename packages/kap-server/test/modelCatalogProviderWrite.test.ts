@@ -436,6 +436,22 @@ describe('server-v2 /api/v1 provider write endpoints', () => {
     expect(models.body.data.items.map((m) => m.model)).toEqual(['k2']);
   });
 
+  it('deletes an OAuth-managed provider: logs out and removes config', async () => {
+    await boot(MANAGED_TOML);
+    const { status, text } = await deleteJson<unknown>('/api/v1/providers/managed:kimi-code');
+    expect(status).toBe(204);
+    expect(text).toBe('');
+
+    const onDisk = await readConfigToml();
+    // The whole [providers]/[models] sections vanish once their only entry is
+    // removed — the config writer drops empty sections.
+    expect(onDisk['providers']).toBeUndefined();
+    expect(onDisk['models']).toBeUndefined();
+
+    const providers = await getJson<{ items: Array<{ id: string }> }>('/api/v1/providers');
+    expect(providers.body.data.items).toEqual([]);
+  });
+
   it('never touches default_provider/default_model when deleting their owner (204, pointers dangling)', async () => {
     await boot(DEFAULTED_TOML);
     const { status, text } = await deleteJson<unknown>('/api/v1/providers/openai');
@@ -471,16 +487,6 @@ describe('server-v2 /api/v1 provider write endpoints', () => {
 
     const providers = await getJson<{ items: unknown[] }>('/api/v1/providers');
     expect(providers.body.data.items).toEqual([]);
-  });
-
-  it('rejects deleting an OAuth-managed provider with 40003', async () => {
-    await boot(MANAGED_TOML);
-    const { body } = await deleteJson<unknown>('/api/v1/providers/managed%3Akimi-code');
-    expect(body?.code).toBe(40003);
-    expect(body?.msg).toContain('/oauth/logout');
-
-    const providers = await getJson<{ items: Array<{ id: string }> }>('/api/v1/providers');
-    expect(providers.body.data.items.map((p) => p.id)).toEqual(['managed:kimi-code']);
   });
 
   it('maps an unknown provider id to 40412 on delete', async () => {
