@@ -21,4 +21,5 @@ export default {
   detailsHide: 'Hide',
   mcpServers: 'MCP servers',
   enableFailed: 'Failed to update "{name}".',
+  sourcePlaceholder: 'Custom marketplace URL (optional)',
 };

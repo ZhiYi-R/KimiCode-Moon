@@ -412,3 +412,87 @@ describe('DaemonKimiWebApi plugin enabled surface', () => {
     expect(result.mcp_servers).toEqual([{ name: 'db', enabled: true, transport: 'stdio' }]);
   });
 });
+
+describe('DaemonKimiWebApi phase-B gap-closure surface', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('runs /init via the :init session action', async () => {
+    vi.mocked(fetch).mockResolvedValue(envelope({ generated: true }));
+    const result = await createApi().initSession('sess/1');
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe(
+      'http://daemon.test/api/v1/sessions/sess%2F1:init',
+    );
+    expect(result).toEqual({ generated: true });
+  });
+
+  it('submits feedback with session id and content', async () => {
+    vi.mocked(fetch).mockResolvedValue(envelope({ submitted: true, feedback_id: 42 }));
+    const result = await createApi().submitFeedback({ sessionId: 'sess/1', content: 'great' });
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://daemon.test/api/v1/feedback');
+    expect(JSON.parse(String(init.body))).toEqual({ session_id: 'sess/1', content: 'great' });
+    expect(result.feedbackId).toBe(42);
+  });
+
+  it('lists plugins with a custom source query', async () => {
+    vi.mocked(fetch).mockResolvedValue(envelope({ plugins: [] }));
+    await createApi().listPlugins('https://market.example/plugins.json');
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe(
+      'http://daemon.test/api/v1/plugins?source=https%3A%2F%2Fmarket.example%2Fplugins.json',
+    );
+  });
+
+  it('lists plugins without a source query when absent', async () => {
+    vi.mocked(fetch).mockResolvedValue(envelope({ plugins: [] }));
+    await createApi().listPlugins();
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('http://daemon.test/api/v1/plugins');
+  });
+
+  it('adds a workspace dir with persist false', async () => {
+    vi.mocked(fetch).mockResolvedValue(envelope({ additional_dirs: ['/x'], persisted: false }));
+    await createApi().addWorkspaceDir('wd_1', '/x', false);
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://daemon.test/api/v1/workspaces/wd_1/dirs');
+    expect(JSON.parse(String(init.body))).toEqual({ dir: '/x', persist: false });
+  });
+
+  it('lists catalog providers', async () => {
+    const items = [{ id: 'anthropic', name: 'Anthropic', rejected: false }];
+    vi.mocked(fetch).mockResolvedValue(envelope({ items }));
+    const result = await createApi().listCatalogProviders();
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe(
+      'http://daemon.test/api/v1/catalog/providers',
+    );
+    expect(result).toEqual(items);
+  });
+
+  it('imports a catalog provider via the :import_catalog action', async () => {
+    vi.mocked(fetch).mockResolvedValue(envelope({ provider: { id: 'anthropic' } }));
+    await createApi().importCatalogProvider({
+      catalogId: 'anthropic',
+      apiKey: 'sk-x',
+      baseUrl: 'https://api.example.com',
+    });
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://daemon.test/api/v1/providers:import_catalog');
+    expect(JSON.parse(String(init.body))).toEqual({
+      catalog_id: 'anthropic',
+      api_key: 'sk-x',
+      base_url: 'https://api.example.com',
+    });
+  });
+
+  it('imports a registry via the :import_registry action', async () => {
+    vi.mocked(fetch).mockResolvedValue(envelope({ imported: 3 }));
+    await createApi().importRegistry({ url: 'https://x/api.json' });
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://daemon.test/api/v1/providers:import_registry');
+    expect(JSON.parse(String(init.body))).toEqual({ url: 'https://x/api.json' });
+  });
+});

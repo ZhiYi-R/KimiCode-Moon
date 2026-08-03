@@ -75,4 +75,11 @@ export default {
   archivedLoadMore: 'Load more',
   archivedLoading: 'Loading…',
   archivedLoadingAll: 'Loading all archived sessions…',
+  feedbackTitle: 'Feedback',
+  feedbackHint: 'Share what works and what doesn\'t. Submissions include your session id and product version.',
+  feedbackPlaceholder: 'What went well? What should improve?',
+  feedbackContact: 'Contact (optional — e.g. email)',
+  feedbackSubmit: 'Send feedback',
+  feedbackSent: 'Thanks — your feedback was sent.',
+  feedbackFailed: 'Failed to send feedback.',
 };

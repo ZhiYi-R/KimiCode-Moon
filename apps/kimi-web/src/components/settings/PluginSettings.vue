@@ -17,16 +17,22 @@ const { t } = useI18n();
 const { confirm } = useConfirmDialog();
 const api = getKimiWebApi();
 
+const MARKETPLACE_SOURCE_STORAGE_KEY = 'kimi-plugin-marketplace-source';
+
 const plugins = ref<WirePluginEntry[]>([]);
 const loading = ref(true);
 const loadError = ref('');
 const busy = ref<string | null>(null);
+const sourceInput = ref(localStorage.getItem(MARKETPLACE_SOURCE_STORAGE_KEY) ?? '');
+
+/** Custom marketplace source (empty = server default / env). */
+const effectiveSource = ref(sourceInput.value.trim() || undefined);
 
 async function load(): Promise<void> {
   loading.value = true;
   loadError.value = '';
   try {
-    plugins.value = await api.listPlugins();
+    plugins.value = await api.listPlugins(effectiveSource.value);
   } catch (error) {
     loadError.value = String(error);
   } finally {
@@ -34,6 +40,18 @@ async function load(): Promise<void> {
   }
 }
 onMounted(load);
+
+function applySource(): void {
+  const trimmed = sourceInput.value.trim();
+  if (trimmed.length === 0) {
+    localStorage.removeItem(MARKETPLACE_SOURCE_STORAGE_KEY);
+    effectiveSource.value = undefined;
+  } else {
+    localStorage.setItem(MARKETPLACE_SOURCE_STORAGE_KEY, trimmed);
+    effectiveSource.value = trimmed;
+  }
+  void load();
+}
 
 async function install(plugin: WirePluginEntry): Promise<void> {
   if (busy.value !== null) return;
@@ -128,6 +146,17 @@ function tierLabel(tier: string | undefined): string {
   <div class="plugins">
     <p class="panel-hint">{{ t('plugins.hint') }}</p>
 
+    <div class="source-row">
+      <input
+        v-model="sourceInput"
+        class="source-input"
+        :placeholder="t('plugins.sourcePlaceholder')"
+        type="text"
+        spellcheck="false"
+        @change="applySource"
+      />
+    </div>
+
     <div v-if="loading" class="state-row">
       <Spinner size="sm" />
       <span>{{ t('plugins.loading') }}</span>
@@ -199,6 +228,19 @@ function tierLabel(tier: string | undefined): string {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   margin: 0;
+}
+.source-row { display: flex; }
+.source-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2);
 }
 .state-row {
   display: flex;

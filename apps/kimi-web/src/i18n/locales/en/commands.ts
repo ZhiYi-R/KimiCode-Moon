@@ -17,4 +17,9 @@ export default {
   },
   status: { desc: 'View session status' },
   undo: { desc: 'Undo the last message' },
+  init: {
+    desc: 'Generate an AGENTS.md for this project',
+    noSession: 'Open a session before running /init.',
+    failed: 'Failed to generate AGENTS.md',
+  },
 } as const;

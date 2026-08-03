@@ -826,6 +826,29 @@ export interface KimiWebApi {
   setPluginMcpServerEnabled(id: string, server: string, enabled: boolean): Promise<void>;
   getPluginInfo(id: string): Promise<WirePluginInfo>;
 
+  // Phase-B (TUI gap closure) — REAL endpoints
+  initSession(sessionId: string): Promise<{ generated: true }>;
+  submitFeedback(input: {
+    sessionId: string;
+    content: string;
+    contact?: string;
+  }): Promise<{ submitted: true; feedbackId?: number }>;
+  /** Custom marketplace source URL (overrides the server's env/default). */
+  listPlugins(source?: string): Promise<WirePluginEntry[]>;
+  addWorkspaceDir(
+    workspaceId: string,
+    dir: string,
+    persist?: boolean,
+  ): Promise<WireWorkspaceDirsResult>;
+  /** models.dev directory entries (server-proxied). */
+  listCatalogProviders(): Promise<WireCatalogProvider[]>;
+  importCatalogProvider(input: {
+    catalogId: string;
+    apiKey?: string;
+    baseUrl?: string;
+  }): Promise<unknown>;
+  importRegistry(input: { url: string; apiKey?: string }): Promise<unknown>;
+
   // Auth — REAL endpoints
   getAuth(): Promise<{
     ready: boolean;
@@ -924,6 +947,19 @@ export interface WirePluginInfo extends WirePluginEntry {
     url?: string;
     command?: string;
   }>;
+}
+
+/** A models.dev catalog entry as served by GET /catalog/providers. */
+export interface WireCatalogProvider {
+  id: string;
+  name: string;
+  wire_type: string | null;
+  guessed: boolean;
+  needs_base_url: boolean;
+  rejected: boolean;
+  reject_reason: string | null;
+  env_key: string | null;
+  models: Array<{ id: string; name?: string }>;
 }
 
 /** Result of `startOAuthLogin()`, mirroring the wire discriminated union. */

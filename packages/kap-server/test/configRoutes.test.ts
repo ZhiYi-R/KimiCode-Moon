@@ -496,4 +496,31 @@ describe('server-v2 phase-3 config routes', () => {
       expect(body.code).toBe(40418);
     });
   });
+
+  // ---------------------------------------------------------------------
+  // Session init + feedback
+  // ---------------------------------------------------------------------
+
+  describe('session init + feedback', () => {
+    it('reports session.not_found for :init on an unknown session', async () => {
+      const { body } = await post<null>('/api/v1/sessions/nope:init');
+      expect(body.code).toBe(40401);
+    });
+
+    it('rejects feedback with 40111 when no managed credential exists', async () => {
+      const { body } = await post<null>('/api/v1/feedback', {
+        session_id: 's1',
+        content: 'hello',
+      });
+      expect(body.code).toBe(40111);
+    });
+
+    it('rejects an empty feedback body with 40001', async () => {
+      const { body } = await post<null>('/api/v1/feedback', {
+        session_id: 's1',
+        content: '',
+      });
+      expect(body.code).toBe(40001);
+    });
+  });
 });

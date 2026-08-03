@@ -34,6 +34,7 @@ import type {
   PromptSubmitResult,
   QuestionResponse,
   WireBeginMcpAuthResult,
+  WireCatalogProvider,
   WireCronTask,
   WireGlobalMcpServer,
   WireMcpTestResult,
@@ -1637,11 +1638,6 @@ export class DaemonKimiWebApi implements KimiWebApi {
   // Plugins (marketplace + installed) — REAL endpoints (phase 3)
   // -------------------------------------------------------------------------
 
-  async listPlugins(): Promise<WirePluginEntry[]> {
-    const data = await this.http.get<{ plugins: WirePluginEntry[] }>('/plugins');
-    return data.plugins;
-  }
-
   async installPlugin(id: string): Promise<void> {
     await this.http.post<{ plugin: WirePluginEntry }>(`/plugins/${encodeURIComponent(id)}/install`);
   }
@@ -1659,13 +1655,6 @@ export class DaemonKimiWebApi implements KimiWebApi {
       `/workspaces/${encodeURIComponent(workspaceId)}/dirs`,
     );
     return data.additional_dirs;
-  }
-
-  async addWorkspaceDir(workspaceId: string, dir: string): Promise<WireWorkspaceDirsResult> {
-    return this.http.post<WireWorkspaceDirsResult>(
-      `/workspaces/${encodeURIComponent(workspaceId)}/dirs`,
-      { dir },
-    );
   }
 
   async removeWorkspaceDir(workspaceId: string, dir: string): Promise<WireWorkspaceDirsResult> {
@@ -1754,6 +1743,77 @@ export class DaemonKimiWebApi implements KimiWebApi {
       `/plugins/${encodeURIComponent(id)}`,
     );
     return data.plugin;
+  }
+
+  // -------------------------------------------------------------------------
+  // Phase-B gap closures — REAL endpoints
+  // -------------------------------------------------------------------------
+
+  async initSession(sessionId: string): Promise<{ generated: true }> {
+    return this.http.post<{ generated: true }>(
+      `/sessions/${encodeURIComponent(sessionId)}:init`,
+    );
+  }
+
+  async submitFeedback(input: {
+    sessionId: string;
+    content: string;
+    contact?: string;
+  }): Promise<{ submitted: true; feedbackId?: number }> {
+    const body: Record<string, unknown> = {
+      session_id: input.sessionId,
+      content: input.content,
+    };
+    if (input.contact !== undefined) body['contact'] = input.contact;
+    const data = await this.http.post<{ submitted: true; feedback_id?: number }>('/feedback', body);
+    return {
+      submitted: true,
+      ...(data.feedback_id !== undefined ? { feedbackId: data.feedback_id } : {}),
+    };
+  }
+
+  async listPlugins(source?: string): Promise<WirePluginEntry[]> {
+    const query =
+      source !== undefined && source.trim().length > 0
+        ? { source: source.trim() }
+        : undefined;
+    const data = await this.http.get<{ plugins: WirePluginEntry[] }>('/plugins', query);
+    return data.plugins;
+  }
+
+  async addWorkspaceDir(
+    workspaceId: string,
+    dir: string,
+    persist?: boolean,
+  ): Promise<WireWorkspaceDirsResult> {
+    const body: Record<string, unknown> = { dir };
+    if (persist !== undefined) body['persist'] = persist;
+    return this.http.post<WireWorkspaceDirsResult>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/dirs`,
+      body,
+    );
+  }
+
+  async listCatalogProviders(): Promise<WireCatalogProvider[]> {
+    const data = await this.http.get<{ items: WireCatalogProvider[] }>('/catalog/providers');
+    return data.items;
+  }
+
+  async importCatalogProvider(input: {
+    catalogId: string;
+    apiKey?: string;
+    baseUrl?: string;
+  }): Promise<unknown> {
+    const body: Record<string, unknown> = { catalog_id: input.catalogId };
+    if (input.apiKey !== undefined) body['api_key'] = input.apiKey;
+    if (input.baseUrl !== undefined) body['base_url'] = input.baseUrl;
+    return this.http.post<unknown>('/providers:import_catalog', body);
+  }
+
+  async importRegistry(input: { url: string; apiKey?: string }): Promise<unknown> {
+    const body: Record<string, unknown> = { url: input.url };
+    if (input.apiKey !== undefined) body['api_key'] = input.apiKey;
+    return this.http.post<unknown>('/providers:import_registry', body);
   }
 }
 

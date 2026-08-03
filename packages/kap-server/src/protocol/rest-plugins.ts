@@ -23,6 +23,12 @@ export const pluginEntrySchema = z.object({
 });
 export type PluginEntry = z.infer<typeof pluginEntrySchema>;
 
+export const listPluginsQuerySchema = z.object({
+  /** Custom marketplace source URL (overrides the env / default). */
+  source: z.string().url().optional(),
+});
+export type ListPluginsQuery = z.infer<typeof listPluginsQuerySchema>;
+
 export const listPluginsResponseSchema = z.object({
   plugins: z.array(pluginEntrySchema),
 });

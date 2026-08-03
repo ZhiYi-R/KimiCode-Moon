@@ -16,4 +16,5 @@ export default {
   removeConfirmMessage: '将从工作区的附加目录中移除 "{dir}"。',
   removeConfirmAction: '移除',
   cancel: '取消',
+  persistLabel: '持久化到 .kimi-code/local.toml',
 };

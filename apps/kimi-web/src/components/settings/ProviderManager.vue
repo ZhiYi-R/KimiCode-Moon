@@ -3,7 +3,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { AppProvider } from '../../api/types';
+import type { AppProvider, WireCatalogProvider } from '../../api/types';
+import { getKimiWebApi } from '../../api';
 import { useDialogFocus } from '../../composables/useDialogFocus';
 import Dialog from '../ui/Dialog.vue';
 import Button from '../ui/Button.vue';
@@ -86,6 +87,103 @@ function submitAdd(): void {
     defaultModel: addForm.defaultModel.trim() || undefined,
   });
   showAddForm.value = false;
+}
+
+// -------------------------------------------------------------------------
+// Catalog / registry import
+// -------------------------------------------------------------------------
+
+const api = getKimiWebApi();
+const showCatalogImport = ref(false);
+const showRegistryImport = ref(false);
+const catalogItems = ref<WireCatalogProvider[]>([]);
+const catalogLoading = ref(false);
+const catalogError = ref('');
+const importForm = reactive({
+  catalogId: '',
+  apiKey: '',
+  baseUrl: '',
+  registryUrl: '',
+  registryApiKey: '',
+});
+const importing = ref(false);
+const importError = ref('');
+const importSuccess = ref('');
+
+async function openCatalogImport(): Promise<void> {
+  showRegistryImport.value = false;
+  importError.value = '';
+  importSuccess.value = '';
+  Object.assign(importForm, { catalogId: '', apiKey: '', baseUrl: '' });
+  showCatalogImport.value = true;
+  if (catalogItems.value.length === 0 && !catalogLoading.value) {
+    catalogLoading.value = true;
+    catalogError.value = '';
+    try {
+      catalogItems.value = (await api.listCatalogProviders()).filter(
+        (item) => !item.rejected,
+      );
+    } catch (error) {
+      catalogError.value = error instanceof Error ? error.message : String(error);
+    } finally {
+      catalogLoading.value = false;
+    }
+  }
+}
+
+function openRegistryImport(): void {
+  showCatalogImport.value = false;
+  importError.value = '';
+  importSuccess.value = '';
+  Object.assign(importForm, { registryUrl: '', registryApiKey: '' });
+  showRegistryImport.value = true;
+}
+
+async function submitCatalogImport(): Promise<void> {
+  if (importForm.catalogId.length === 0) {
+    importError.value = t('providers.catalogRequired');
+    return;
+  }
+  importing.value = true;
+  importError.value = '';
+  importSuccess.value = '';
+  try {
+    await api.importCatalogProvider({
+      catalogId: importForm.catalogId,
+      apiKey: importForm.apiKey.trim() || undefined,
+      baseUrl: importForm.baseUrl.trim() || undefined,
+    });
+    importSuccess.value = t('providers.imported');
+    showCatalogImport.value = false;
+    emit('refresh', importForm.catalogId);
+  } catch (error) {
+    importError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    importing.value = false;
+  }
+}
+
+async function submitRegistryImport(): Promise<void> {
+  const url = importForm.registryUrl.trim();
+  if (url.length === 0) {
+    importError.value = t('providers.registryUrlRequired');
+    return;
+  }
+  importing.value = true;
+  importError.value = '';
+  importSuccess.value = '';
+  try {
+    await api.importRegistry({
+      url,
+      apiKey: importForm.registryApiKey.trim() || undefined,
+    });
+    importSuccess.value = t('providers.imported');
+    showRegistryImport.value = false;
+  } catch (error) {
+    importError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    importing.value = false;
+  }
 }
 
 // -------------------------------------------------------------------------
@@ -182,10 +280,87 @@ function statusLabel(status: AppProvider['status']): string {
               <Icon name="user" size="sm" />
               {{ t('providers.loginAnthropic') }}
             </Button>
+            <Button variant="secondary" size="sm" @click="openCatalogImport">
+              <Icon name="globe" size="sm" />
+              {{ t('providers.importCatalog') }}
+            </Button>
+            <Button variant="secondary" size="sm" @click="openRegistryImport">
+              <Icon name="link" size="sm" />
+              {{ t('providers.importRegistry') }}
+            </Button>
             <Button variant="primary" size="sm" @click="openAdd">
               <Icon name="plus" size="sm" />
               {{ t('providers.enterApiKey') }}
             </Button>
+          </div>
+
+          <div v-if="showCatalogImport" class="import-form">
+            <div v-if="catalogLoading" class="import-state">
+              <Spinner size="sm" />
+              <span>{{ t('providers.catalogLoading') }}</span>
+            </div>
+            <div v-else-if="catalogError" class="import-error">
+              {{ t('providers.catalogFailed') }} {{ catalogError }}
+            </div>
+            <template v-else>
+              <Field :label="t('providers.catalogProvider')">
+                <Select v-model="importForm.catalogId">
+                  <option value="" disabled>{{ t('providers.catalogChoose') }}</option>
+                  <option v-for="item in catalogItems" :key="item.id" :value="item.id">
+                    {{ item.name }} ({{ item.id }})
+                  </option>
+                </Select>
+              </Field>
+              <Field :label="t('providers.catalogApiKey')">
+                <Input
+                  v-model="importForm.apiKey"
+                  type="password"
+                  placeholder="sk-…"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </Field>
+              <Field :label="t('providers.catalogBaseUrl')">
+                <Input
+                  v-model="importForm.baseUrl"
+                  :placeholder="t('providers.optional')"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </Field>
+            </template>
+          </div>
+
+          <div v-if="showRegistryImport" class="import-form">
+            <Field :label="t('providers.registryUrl')">
+              <Input v-model="importForm.registryUrl" placeholder="https://…/api.json" autocomplete="off" spellcheck="false" />
+            </Field>
+            <Field :label="t('providers.registryApiKey')">
+              <Input
+                v-model="importForm.registryApiKey"
+                type="password"
+                :placeholder="t('providers.optional')"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </Field>
+          </div>
+
+          <div v-if="importError" class="add-error">{{ importError }}</div>
+          <div v-if="importSuccess" class="import-ok">{{ importSuccess }}</div>
+          <div v-if="showCatalogImport && !catalogLoading && !catalogError" class="form-btns">
+            <Button variant="primary" size="sm" :disabled="importing" @click="submitCatalogImport">
+              <Spinner v-if="importing" size="sm" />
+              {{ t('providers.importSubmit') }}
+            </Button>
+            <Button variant="secondary" size="sm" @click="showCatalogImport = false">{{ t('common.cancel') }}</Button>
+          </div>
+          <div v-if="showRegistryImport" class="form-btns">
+            <Button variant="primary" size="sm" :disabled="importing" @click="submitRegistryImport">
+              <Spinner v-if="importing" size="sm" />
+              {{ t('providers.importSubmit') }}
+            </Button>
+            <Button variant="secondary" size="sm" @click="showRegistryImport = false">{{ t('common.cancel') }}</Button>
           </div>
         </template>
         <template v-else>
@@ -327,6 +502,25 @@ function statusLabel(status: AppProvider['status']): string {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+.import-form { display: flex; flex-direction: column; gap: var(--space-3); }
+.import-state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.import-error {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+.import-ok {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-success);
 }
 
 /* Form */

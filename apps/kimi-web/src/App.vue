@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { getKimiWebApi } from './api';
 import Sidebar from './components/Sidebar.vue';
 import ResizeHandle from './components/ResizeHandle.vue';
 import ConversationPane from './components/chat/ConversationPane.vue';
@@ -572,6 +573,23 @@ function handleCommand(cmd: string): void {
     case '/login':
       openLogin();
       break;
+    case '/init': {
+      const sessionId = client.activeSessionId.value;
+      if (sessionId === null || sessionId.length === 0) {
+        client.warnings.value.push({ severity: 'info', title: t('commands.init.noSession') });
+        break;
+      }
+      void getKimiWebApi()
+        .initSession(sessionId)
+        .catch((error: unknown) => {
+          client.warnings.value.push({
+            severity: 'error',
+            title: t('commands.init.failed'),
+            message: error instanceof Error ? error.message : String(error),
+          });
+        });
+      break;
+    }
     default: {
       // Not a built-in command → treat it as a session skill activation
       // (the user picked `/skill:<skill>` from the menu, or typed

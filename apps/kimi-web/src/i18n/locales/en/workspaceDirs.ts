@@ -16,4 +16,5 @@ export default {
   removeConfirmMessage: 'This removes "{dir}" from the workspace\'s additional directories.',
   removeConfirmAction: 'Remove',
   cancel: 'Cancel',
+  persistLabel: 'Persist in .kimi-code/local.toml',
 };

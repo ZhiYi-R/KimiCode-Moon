@@ -20,6 +20,7 @@ import { defineRoute } from '../middleware/defineRoute';
 import { ErrorCode } from '../protocol/error-codes';
 import {
   installPluginResponseSchema,
+  listPluginsQuerySchema,
   listPluginsResponseSchema,
   pluginIdParamSchema,
   pluginInfoResponseSchema,
@@ -41,7 +42,7 @@ interface PluginRouteHost {
     path: string,
     options: { preHandler: unknown[]; schema?: Record<string, unknown> } | undefined,
     handler: (
-      req: { id: string },
+      req: { id: string; query: unknown },
       reply: { send(payload: unknown): unknown },
     ) => Promise<void> | void,
   ): unknown;
@@ -63,6 +64,7 @@ export function registerPluginsRoutes(app: PluginRouteHost, core: Scope): void {
     {
       method: 'GET',
       path: '/plugins',
+      querystring: listPluginsQuerySchema,
       success: { data: listPluginsResponseSchema },
       errors: {
         [ErrorCode.VALIDATION_FAILED]: {},
@@ -73,8 +75,9 @@ export function registerPluginsRoutes(app: PluginRouteHost, core: Scope): void {
     },
     async (req, reply) => {
       try {
+        const query = req.query as { source?: string } | undefined;
         const [marketplace, installed] = await Promise.all([
-          loadPluginMarketplace(),
+          loadPluginMarketplace(undefined, query?.source),
           pluginService().listPlugins(),
         ]);
         const installedById = new Map(installed.map((plugin) => [plugin.id, plugin]));

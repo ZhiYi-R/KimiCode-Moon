@@ -11,6 +11,7 @@ import Field from '../ui/Field.vue';
 import Input from '../ui/Input.vue';
 import Spinner from '../ui/Spinner.vue';
 import Icon from '../ui/Icon.vue';
+import Switch from '../ui/Switch.vue';
 
 const { t } = useI18n();
 const { confirm } = useConfirmDialog();
@@ -45,12 +46,13 @@ watch(() => props.workspaceId, load);
 // -------------------------------------------------------------------------
 
 const showAddForm = ref(false);
-const addForm = reactive({ dir: '' });
+const addForm = reactive({ dir: '', persist: true });
 const addError = ref('');
 const adding = ref(false);
 
 function openAdd(): void {
   addForm.dir = '';
+  addForm.persist = true;
   addError.value = '';
   showAddForm.value = true;
 }
@@ -64,7 +66,7 @@ async function submitAdd(): Promise<void> {
   addError.value = '';
   adding.value = true;
   try {
-    await api.addWorkspaceDir(props.workspaceId as string, dir);
+    await api.addWorkspaceDir(props.workspaceId as string, dir, addForm.persist);
     showAddForm.value = false;
     await load();
   } catch (error) {
@@ -133,6 +135,10 @@ async function removeDir(dir: string): Promise<void> {
             <Field :label="t('workspaceDirs.fieldDir')">
               <Input v-model="addForm.dir" :placeholder="t('workspaceDirs.fieldDirPlaceholder')" spellcheck="false" />
             </Field>
+            <div class="persist-row">
+              <Switch v-model="addForm.persist" />
+              <span>{{ t('workspaceDirs.persistLabel') }}</span>
+            </div>
             <div v-if="addError" class="add-error">{{ addError }}</div>
             <div class="form-btns">
               <Button variant="primary" size="sm" :disabled="adding" @click="submitAdd">
@@ -190,6 +196,14 @@ async function removeDir(dir: string): Promise<void> {
 
 .add-section { border-top: 1px solid var(--color-line); padding-top: var(--space-3); }
 .add-form { display: flex; flex-direction: column; gap: var(--space-3); }
+.persist-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
 .add-error {
   font-family: var(--font-ui);
   font-size: var(--text-sm);

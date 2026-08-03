@@ -17,4 +17,9 @@ export default {
   },
   status: { desc: '查看会话状态' },
   undo: { desc: '撤销上一条消息' },
+  init: {
+    desc: '为项目生成 AGENTS.md',
+    noSession: '请先打开一个会话再运行 /init。',
+    failed: '生成 AGENTS.md 失败',
+  },
 };

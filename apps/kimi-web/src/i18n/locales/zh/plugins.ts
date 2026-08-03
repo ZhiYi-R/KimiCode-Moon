@@ -21,4 +21,5 @@ export default {
   detailsHide: '收起',
   mcpServers: 'MCP 服务器',
   enableFailed: '更新 "{name}" 失败。',
+  sourcePlaceholder: '自定义市场 URL（可选）',
 };

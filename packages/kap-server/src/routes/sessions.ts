@@ -90,6 +90,7 @@ import {
   ISessionMetadata,
   ISessionLegacyService,
   ISessionSecondaryModelWarningService,
+  ISessionInitService,
   IEventService,
   IWorkspaceAliases,
   ISessionLifecycleService,
@@ -647,7 +648,7 @@ export function registerSessionsRoutes(app: SessionRouteHost, core: Scope): void
         const { tail } = req.params;
         const parsed = parseActionSuffix({
           tail,
-          allowedActions: ['fork', 'compact', 'undo', 'abort', 'btw', 'archive', 'restore'] as const,
+          allowedActions: ['fork', 'compact', 'undo', 'abort', 'btw', 'archive', 'restore', 'init'] as const,
           resourceLabel: 'session',
         });
         if (parsed.kind !== 'action') {
@@ -691,6 +692,24 @@ export function registerSessionsRoutes(app: SessionRouteHost, core: Scope): void
             'session action completed',
           );
           reply.send(okEnvelope(session, req.id));
+          return;
+        }
+
+        if (parsed.action === 'init') {
+          // `/init`: spawn the `coder` subagent to write AGENTS.md and surface
+          // it back into the main agent. Synchronous (resolves when the
+          // generation completes), matching the TUI's await semantics; long
+          // runs are the GUI's loading state to cover.
+          const session = await resumeSessionById(core.accessor, parsed.id);
+          if (session === undefined) {
+            throw new Error2(
+              ErrorCodes.SESSION_NOT_FOUND,
+              `session ${parsed.id} does not exist`,
+            );
+          }
+          await session.accessor.get(ISessionInitService).generateAgentsMd();
+          requestLog(req)?.info({ session_id: parsed.id, action: 'init' }, 'session action completed');
+          reply.send(okEnvelope({ generated: true }, req.id));
           return;
         }
 

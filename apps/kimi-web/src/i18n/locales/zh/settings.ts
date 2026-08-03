@@ -75,4 +75,11 @@ export default {
   archivedLoadMore: '加载更多',
   archivedLoading: '加载中…',
   archivedLoadingAll: '正在加载全部归档会话…',
+  feedbackTitle: '反馈',
+  feedbackHint: '分享你的使用体验。提交内容包含会话 ID 与产品版本。',
+  feedbackPlaceholder: '哪里好用？哪里需要改进？',
+  feedbackContact: '联系方式（可选，例如邮箱）',
+  feedbackSubmit: '发送反馈',
+  feedbackSent: '感谢反馈，已发送。',
+  feedbackFailed: '发送反馈失败。',
 };

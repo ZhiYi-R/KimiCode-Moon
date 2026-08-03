@@ -19,6 +19,7 @@ import Button from '../ui/Button.vue';
 import SegmentedControl from '../ui/SegmentedControl.vue';
 import Select from '../ui/Select.vue';
 import Tooltip from '../ui/Tooltip.vue';
+import { getKimiWebApi } from '../../api';
 import McpSettings from './McpSettings.vue';
 import PluginSettings from './PluginSettings.vue';
 import CronSettings from './CronSettings.vue';
@@ -127,6 +128,40 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
 
 function exportLog(): void {
   downloadTraceLog();
+}
+
+// -------------------------------------------------------------------------
+// Feedback
+// -------------------------------------------------------------------------
+
+const feedbackContent = ref('');
+const feedbackContact = ref('');
+const feedbackSubmitting = ref(false);
+const feedbackStatus = ref('');
+const feedbackStatusKind = ref<'ok' | 'error'>('ok');
+
+async function submitFeedback(): Promise<void> {
+  const sessionId = client.activeSessionId.value;
+  if (sessionId === null || sessionId.length === 0) return;
+  feedbackSubmitting.value = true;
+  feedbackStatus.value = '';
+  try {
+    await getKimiWebApi().submitFeedback({
+      sessionId,
+      content: feedbackContent.value.trim(),
+      ...(feedbackContact.value.trim().length > 0 ? { contact: feedbackContact.value.trim() } : {}),
+    });
+    feedbackStatus.value = t('settings.feedbackSent');
+    feedbackStatusKind.value = 'ok';
+    feedbackContent.value = '';
+  } catch (error) {
+    feedbackStatus.value =
+      t('settings.feedbackFailed') +
+      ` ${error instanceof Error ? error.message : String(error)}`;
+    feedbackStatusKind.value = 'error';
+  } finally {
+    feedbackSubmitting.value = false;
+  }
 }
 
 type ModelOption = { id: string; label: string; provider: string };
@@ -612,6 +647,36 @@ function archiveTime(iso: string): string {
               </span>
               <Button variant="secondary" size="sm" @click="exportLog">{{ t('settings.exportLogBtn') }}</Button>
             </div>
+            <div class="feedback-sec">
+              <h4 class="sec-title">{{ t('settings.feedbackTitle') }}</h4>
+              <p class="feedback-hint">{{ t('settings.feedbackHint') }}</p>
+              <textarea
+                v-model="feedbackContent"
+                class="feedback-input"
+                :placeholder="t('settings.feedbackPlaceholder')"
+                rows="3"
+              />
+              <input
+                v-model="feedbackContact"
+                class="feedback-contact"
+                :placeholder="t('settings.feedbackContact')"
+                type="text"
+                spellcheck="false"
+              />
+              <div v-if="feedbackStatus" class="feedback-status" :class="feedbackStatusKind">
+                {{ feedbackStatus }}
+              </div>
+              <div class="form-btns">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  :disabled="feedbackSubmitting || feedbackContent.trim().length === 0 || !client.activeSessionId.value"
+                  @click="submitFeedback"
+                >
+                  {{ t('settings.feedbackSubmit') }}
+                </Button>
+              </div>
+            </div>
           </section>
         </section>
 
@@ -755,6 +820,52 @@ function archiveTime(iso: string): string {
 .tab:hover { background: var(--color-surface-sunken); color: var(--color-text); }
 .tab.on { background: var(--color-accent-soft); color: var(--color-accent); font-weight: var(--weight-medium); }
 .tab:focus-visible { outline: none; box-shadow: var(--p-focus-ring); }
+
+.feedback-sec {
+  border-top: 1px solid var(--color-line);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.feedback-sec .sec-title { margin-bottom: 0; }
+.feedback-hint {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.feedback-input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+.feedback-contact {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+.feedback-status {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.feedback-status.ok { color: var(--color-success); }
+.feedback-status.error { color: var(--color-danger); }
+.form-btns { display: flex; gap: var(--space-2); }
 
 .body { display: flex; flex-direction: column; overflow-y: auto; padding: var(--space-2) var(--space-5) var(--space-5) var(--space-6); flex: 1; min-width: 0; }
 .panel { display: block; }

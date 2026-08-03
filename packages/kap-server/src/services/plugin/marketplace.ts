@@ -43,8 +43,12 @@ const marketplaceSchema = z.object({
 
 export async function loadPluginMarketplace(
   fetchImpl: typeof fetch = fetch,
+  source?: string,
 ): Promise<PluginMarketplace> {
-  const raw = process.env[PLUGIN_MARKETPLACE_URL_ENV] ?? PLUGIN_MARKETPLACE_URL;
+  const raw =
+    source !== undefined && source.trim().length > 0
+      ? source.trim()
+      : process.env[PLUGIN_MARKETPLACE_URL_ENV] ?? PLUGIN_MARKETPLACE_URL;
   let response: Response;
   try {
     response = await fetchImpl(raw);
