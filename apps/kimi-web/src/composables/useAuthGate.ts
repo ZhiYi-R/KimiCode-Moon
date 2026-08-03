@@ -1,6 +1,8 @@
 // apps/kimi-web/src/composables/useAuthGate.ts
-// Auth readiness gates the main app. Once the first load finishes and auth is
-// still missing, show a full-page login entry instead of an in-app banner.
+// Provider readiness gates the main app. Once the first load finishes and no
+// usable provider is configured, show a full-page "add a provider" entry
+// instead of an in-app banner (the page opens the provider manager, not a
+// login dialog — Moonshot/Kimi sign-in is no longer a first-class flow).
 
 import { computed, onUnmounted, ref, watch, type Ref } from 'vue';
 import type { useKimiWebClient } from './useKimiWebClient';

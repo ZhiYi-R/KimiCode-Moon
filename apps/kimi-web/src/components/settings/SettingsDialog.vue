@@ -530,9 +530,12 @@ function archiveTime(iso: string): string {
               </Tooltip>
             </div>
             <div class="actions">
+              <Button variant="secondary" size="sm" @click="emit('openProviders')">
+                {{ t('settings.providers') }}
+              </Button>
               <Button variant="secondary" size="sm" @click="emit('openOnboarding'); emit('close')">{{ t('onboarding.reopen') }}</Button>
               <Button v-if="authReady" variant="danger-soft" size="sm" @click="emit('logout')">{{ t('sidebar.signOut') }}</Button>
-              <Button v-else variant="primary" size="sm" @click="emit('login')">{{ t('sidebar.signIn') }}</Button>
+              <Button v-else variant="primary" size="sm" @click="emit('openProviders')">{{ t('app.authPageLogin') }}</Button>
             </div>
           </section>
         </section>

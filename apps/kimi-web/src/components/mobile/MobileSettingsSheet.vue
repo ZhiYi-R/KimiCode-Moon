@@ -65,6 +65,7 @@ const emit = defineEmits<{
   setConversationToc: [on: boolean];
   login: [];
   logout: [];
+  openProviders: [];
 }>();
 
 function onColorScheme(v: string): void {
@@ -133,11 +134,6 @@ function cyclePermission(): void {
 
 function onPickModel(): void {
   emit('pickModel');
-  emit('update:modelValue', false);
-}
-
-function onLogin(): void {
-  emit('login');
   emit('update:modelValue', false);
 }
 
@@ -385,9 +381,9 @@ watch(
         <span class="srow-label">{{ t('sidebar.signOut') }}</span>
       </span>
     </button>
-    <button v-else type="button" class="srow acct in" @click="onLogin">
+    <button v-else type="button" class="srow acct in" @click="emit('openProviders')">
       <span class="srow-main">
-        <span class="srow-label">{{ t('sidebar.signIn') }}</span>
+        <span class="srow-label">{{ t('app.authPageLogin') }}</span>
       </span>
     </button>
 

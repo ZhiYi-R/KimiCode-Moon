@@ -2,6 +2,7 @@ export default {
   new: { desc: '创建新会话' },
   clear: { desc: '清空并新建会话' },
   login: { desc: '在浏览器中登录 Kimi' },
+  provider: { desc: '添加或管理模型 Provider' },
   plan: { desc: '切换计划模式 开/关' },
   swarm: { desc: '切换 swarm 模式；/swarm <任务> 直接在 swarm 下执行' },
   goal: { desc: '创建/控制目标：/goal <目标>、/goal pause|resume|cancel' },

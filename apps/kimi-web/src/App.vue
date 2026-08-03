@@ -573,8 +573,8 @@ function handleCommand(cmd: string): void {
     case '/status':
       showStatusPanel.value = true;
       break;
-    case '/login':
-      openLogin();
+    case '/provider':
+      void openProviders();
       break;
     case '/init': {
       const sessionId = client.activeSessionId.value;
@@ -724,8 +724,8 @@ function openPr(url: string): void {
           <h1>{{ t('app.authPageTitle') }}</h1>
           <p>{{ t('app.authPageMessage') }}</p>
         </div>
-        <Button class="auth-page-btn" variant="primary" @click="openLogin">
-          <Icon name="log-in" size="md" />
+        <Button class="auth-page-btn" variant="primary" @click="openProviders">
+          <Icon name="plus" size="md" />
           <span>{{ t('app.authPageLogin') }}</span>
         </Button>
       </div>
@@ -1144,6 +1144,7 @@ function openPr(url: string): void {
       @set-ui-font-size="client.setUiFontSize($event)"
       @set-conversation-toc="client.setConversationToc($event)"
       @login="() => { showMobileSettings = false; openLogin(); }"
+      @open-providers="() => { showMobileSettings = false; void openProviders(); }"
       @logout="client.logout"
     />
     </div>

@@ -24,7 +24,7 @@ export interface SlashCommand {
 export const SLASH_COMMANDS: SlashCommand[] = [
   { name: '/new',        desc: 'commands.new.desc' },
   { name: '/clear',      desc: 'commands.clear.desc' },
-  { name: '/login',      desc: 'commands.login.desc' },
+  { name: '/provider',   desc: 'commands.provider.desc' },
   { name: '/plan',       desc: 'commands.plan.desc' },
   { name: '/swarm',      desc: 'commands.swarm.desc', acceptsInput: true },
   { name: '/goal',       desc: 'commands.goal.desc', acceptsInput: true },

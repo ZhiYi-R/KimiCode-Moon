@@ -26,7 +26,7 @@ export default {
   brand: 'Kimi Code',
   signedIn: '已登录',
   signOut: '退出登录',
-  notSignedIn: '未登录',
+  notSignedIn: '未配置 Provider',
   signIn: '登录',
   language: '语言',
   daemon: '后台',

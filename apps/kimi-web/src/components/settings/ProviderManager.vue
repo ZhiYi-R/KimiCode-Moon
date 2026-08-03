@@ -272,10 +272,6 @@ function statusLabel(status: AppProvider['status']): string {
         <template v-if="!showAddForm">
           <div class="add-btns">
             <!-- OAuth login shortcuts for common platforms -->
-            <Button variant="secondary" size="sm" @click="emit('openLogin', 'moonshot')">
-              <Icon name="user" size="sm" />
-              {{ t('providers.loginKimi') }}
-            </Button>
             <Button variant="secondary" size="sm" @click="emit('openLogin', 'anthropic')">
               <Icon name="user" size="sm" />
               {{ t('providers.loginAnthropic') }}

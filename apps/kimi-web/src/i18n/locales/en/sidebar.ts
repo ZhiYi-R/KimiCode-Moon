@@ -26,7 +26,7 @@ export default {
   brand: 'Kimi Code',
   signedIn: 'Signed in',
   signOut: 'Sign out',
-  notSignedIn: 'Not signed in',
+  notSignedIn: 'No provider configured',
   signIn: 'Sign in',
   language: 'Language',
   daemon: 'Daemon',
